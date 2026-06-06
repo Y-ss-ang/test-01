@@ -172,7 +172,11 @@
         const COLS = 25;
         const ROWS = 25;
 
+        const NORMAL_MS = 180;
+        const BOOST_MS = 80;
         let snake, dir, nextDir, food, score, gameOver, loop;
+        let boostKeyHeld = false;
+        const heldDirs = new Set();
 
         function hsl(i, total) {
             return `hsl(${Math.round(120 + (i / total) * 300)}, 85%, 60%)`;
@@ -274,6 +278,7 @@
             if (gameOver) return;
 
             dir = { ...nextDir };
+            setSpeed(heldDirs.has(`${dir.x},${dir.y}`));
             const head = { x: snake[0].x + dir.x, y: snake[0].y + dir.y };
 
             // wall collision
@@ -311,51 +316,77 @@
             clearInterval(loop);
         }
 
+        function setSpeed(boost) {
+            if (boost === boostKeyHeld) return;
+            boostKeyHeld = boost;
+            clearInterval(loop);
+            loop = setInterval(tick, boost ? BOOST_MS : NORMAL_MS);
+        }
+
         function startLoop() {
+            boostKeyHeld = false;
             if (loop) clearInterval(loop);
-            loop = setInterval(tick, 130);
+            loop = setInterval(tick, NORMAL_MS);
         }
 
         function restart() {
             clearInterval(loop);
+            heldDirs.clear();
+            boostKeyHeld = false;
             init();
             startLoop();
         }
 
         // input
+        const keyMap = {
+            ArrowUp:    { x: 0, y: -1 },
+            ArrowDown:  { x: 0, y: 1 },
+            ArrowLeft:  { x: -1, y: 0 },
+            ArrowRight: { x: 1, y: 0 },
+            w: { x: 0, y: -1 }, W: { x: 0, y: -1 },
+            s: { x: 0, y: 1 },  S: { x: 0, y: 1 },
+            a: { x: -1, y: 0 }, A: { x: -1, y: 0 },
+            d: { x: 1, y: 0 },  D: { x: 1, y: 0 },
+        };
         document.addEventListener('keydown', e => {
             const key = e.key;
             if (key === ' ' && gameOver) { e.preventDefault(); restart(); return; }
-
-            const map = {
-                ArrowUp:    { x: 0, y: -1 },
-                ArrowDown:  { x: 0, y: 1 },
-                ArrowLeft:  { x: -1, y: 0 },
-                ArrowRight: { x: 1, y: 0 },
-                w: { x: 0, y: -1 }, W: { x: 0, y: -1 },
-                s: { x: 0, y: 1 },  S: { x: 0, y: 1 },
-                a: { x: -1, y: 0 }, A: { x: -1, y: 0 },
-                d: { x: 1, y: 0 },  D: { x: 1, y: 0 },
-            };
-            const nd = map[key];
-            if (nd && (nd.x !== -dir.x || nd.y !== -dir.y)) {
-                e.preventDefault();
-                nextDir = nd;
-            }
+            const nd = keyMap[key];
+            if (!nd) return;
+            e.preventDefault();
+            heldDirs.add(`${nd.x},${nd.y}`);
+            if (nd.x !== -dir.x || nd.y !== -dir.y) nextDir = nd;
+        });
+        document.addEventListener('keyup', e => {
+            const nd = keyMap[e.key];
+            if (nd) heldDirs.delete(`${nd.x},${nd.y}`);
         });
 
         document.getElementById('restartBtn').addEventListener('click', restart);
 
         // dpad buttons
+        const dirMap = { up: {x:0,y:-1}, down: {x:0,y:1}, left: {x:-1,y:0}, right: {x:1,y:0} };
         document.querySelectorAll('.dpad-btn').forEach(btn => {
             btn.addEventListener('touchstart', e => {
                 e.preventDefault();
-                const nd = { up: {x:0,y:-1}, down: {x:0,y:1}, left: {x:-1,y:0}, right: {x:1,y:0} }[btn.dataset.dir];
-                if (nd && (nd.x !== -dir.x || nd.y !== -dir.y)) nextDir = nd;
+                const nd = dirMap[btn.dataset.dir];
+                if (!nd) return;
+                heldDirs.add(`${nd.x},${nd.y}`);
+                if (nd.x !== -dir.x || nd.y !== -dir.y) nextDir = nd;
             }, { passive: false });
+            btn.addEventListener('touchend', e => {
+                const nd = dirMap[btn.dataset.dir];
+                if (nd) heldDirs.delete(`${nd.x},${nd.y}`);
+            }, { passive: true });
             btn.addEventListener('mousedown', e => {
-                const nd = { up: {x:0,y:-1}, down: {x:0,y:1}, left: {x:-1,y:0}, right: {x:1,y:0} }[btn.dataset.dir];
-                if (nd && (nd.x !== -dir.x || nd.y !== -dir.y)) nextDir = nd;
+                const nd = dirMap[btn.dataset.dir];
+                if (!nd) return;
+                heldDirs.add(`${nd.x},${nd.y}`);
+                if (nd.x !== -dir.x || nd.y !== -dir.y) nextDir = nd;
+            });
+            btn.addEventListener('mouseup', e => {
+                const nd = dirMap[btn.dataset.dir];
+                if (nd) heldDirs.delete(`${nd.x},${nd.y}`);
             });
         });
 
