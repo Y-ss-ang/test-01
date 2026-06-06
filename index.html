@@ -51,6 +51,7 @@
             background: #1a1a2e;
             width: 500px;
             height: 500px;
+            touch-action: none;
         }
         .controls {
             display: flex;
@@ -73,6 +74,35 @@
         .restart-btn:hover {
             background: rgba(255,255,255,.15);
         }
+        .dpad {
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            gap: 4px;
+            margin-top: 16px;
+        }
+        .dpad-row { display: flex; gap: 44px; }
+        .dpad-btn {
+            width: 56px;
+            height: 56px;
+            border-radius: 14px;
+            border: 1px solid rgba(255,255,255,.15);
+            background: rgba(255,255,255,.08);
+            color: #fff;
+            font-size: 22px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            user-select: none;
+            -webkit-user-select: none;
+            touch-action: manipulation;
+            transition: .1s;
+        }
+        .dpad-btn:active {
+            background: rgba(255,255,255,.2);
+            transform: scale(.92);
+        }
         #overlay {
             display: none;
             position: absolute;
@@ -94,6 +124,10 @@
         @media (max-width: 560px) {
             .container { padding: 16px; }
             canvas { width: 340px; height: 340px; }
+            .dpad { display: flex; }
+            .dpad-btn { width: 48px; height: 48px; font-size: 18px; }
+            .dpad-row { gap: 36px; }
+            #restartHint { display: none; }
         }
     </style>
 </head>
@@ -108,12 +142,22 @@
             <div id="overlay">
                 <h2>游戏结束</h2>
                 <div class="final">得分 <span id="finalScore">0</span></div>
-                <p>按「空格键」重新开始</p>
+                <p id="restartHint">按「空格键」重新开始</p>
             </div>
         </div>
         <div class="controls">
             <span>← ↑ → ↓  /  W A S D</span>
             <button class="restart-btn" id="restartBtn">重新开始</button>
+        </div>
+        <div class="dpad" id="dpad">
+            <div class="dpad-row">
+                <button class="dpad-btn" data-dir="up">▲</button>
+            </div>
+            <div class="dpad-row">
+                <button class="dpad-btn" data-dir="left">◀</button>
+                <button class="dpad-btn" data-dir="down">▼</button>
+                <button class="dpad-btn" data-dir="right">▶</button>
+            </div>
         </div>
     </div>
 
@@ -301,6 +345,19 @@
         });
 
         document.getElementById('restartBtn').addEventListener('click', restart);
+
+        // dpad buttons
+        document.querySelectorAll('.dpad-btn').forEach(btn => {
+            btn.addEventListener('touchstart', e => {
+                e.preventDefault();
+                const nd = { up: {x:0,y:-1}, down: {x:0,y:1}, left: {x:-1,y:0}, right: {x:1,y:0} }[btn.dataset.dir];
+                if (nd && (nd.x !== -dir.x || nd.y !== -dir.y)) nextDir = nd;
+            }, { passive: false });
+            btn.addEventListener('mousedown', e => {
+                const nd = { up: {x:0,y:-1}, down: {x:0,y:1}, left: {x:-1,y:0}, right: {x:1,y:0} }[btn.dataset.dir];
+                if (nd && (nd.x !== -dir.x || nd.y !== -dir.y)) nextDir = nd;
+            });
+        });
 
         // touch / swipe support
         let tx = 0, ty = 0;
