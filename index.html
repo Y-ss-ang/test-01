@@ -171,6 +171,17 @@ body {
 .tag-btn:hover { border-color: rgba(236,72,153,.4); color: #fff; }
 .tag-btn.selected { background: rgba(236,72,153,.25); border-color: #ec4899; color: #fff; }
 
+/* ---- 心情标签 ---- */
+.mood-btn {
+  background: rgba(255,255,255,.05);
+  border: 1px solid rgba(255,255,255,.1);
+  border-radius: 99px; padding: 4px 14px;
+  color: rgba(255,255,255,.6); font-size: .8rem; cursor: pointer;
+  transition: all .2s;
+}
+.mood-btn:hover { border-color: rgba(168,85,247,.4); color: #fff; }
+.mood-btn.selected { background: rgba(168,85,247,.25); border-color: #a855f7; color: #fff; }
+
 .btn-gradient {
   background: linear-gradient(90deg,#ec4899,#a855f7);
   border: none; color: #fff; padding: 12px 32px; border-radius: 99px;
@@ -370,14 +381,25 @@ body {
         <div class="md:col-span-2 space-y-3">
           <div class="glass-card p-4">
             <h4 class="text-sm font-medium text-white/60 mb-3">📝 发布动态</h4>
+            <!-- 心情标签选择 -->
+            <div class="flex flex-wrap gap-2 mb-3" id="mood-tags">
+              <button class="mood-btn selected" data-mood="开心">😊 开心</button>
+              <button class="mood-btn" data-mood="沮丧">😢 沮丧</button>
+              <button class="mood-btn" data-mood="疲惫">😴 疲惫</button>
+              <button class="mood-btn" data-mood="奋斗">🔥 奋斗</button>
+              <button class="mood-btn" data-mood="感谢">🎉 感谢</button>
+              <button class="mood-btn" data-mood="思考">🤔 思考</button>
+            </div>
             <textarea id="fan-post-input" maxlength="200" placeholder="分享你的近况和心情..."
               class="w-full px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white
                      placeholder-white/30 outline-none focus:border-purple-500/60 transition-colors resize-none"
               style="min-height:80px;"></textarea>
-            <button onclick="FanCircle.postStatus()" class="btn-gradient mt-2 py-2 px-6 text-sm">
-              📤 发布
-            </button>
-            <span class="text-xs text-white/30 ml-3" id="post-char-count">0/200</span>
+            <div class="flex items-center gap-3 mt-2">
+              <span class="text-xs text-white/30" id="post-char-count">0/200</span>
+              <button onclick="FanCircle.postStatus()" class="btn-gradient py-2 px-6 text-sm ml-auto">
+                📤 发布
+              </button>
+            </div>
           </div>
           <div class="glass-card p-4" id="fan-posts-container">
             <h4 class="text-sm font-medium text-white/60 mb-3">💬 历史动态</h4>
@@ -1940,43 +1962,61 @@ const AlbumChartSystem = {
 // 9. 粉丝圈系统（发布状态 + 粉丝留言 + 互动）
 // ============================================================
 const FanCircle = {
-  /** 粉丝留言模板（根据粉丝量级变化） */
-  getFanComments(post) {
-    const chara = GameState.data.character;
-    const fanCount = chara.fans;
-    // 粉丝越多，每条动态的评论数越多
-    const commentCount = Math.min(8, Math.max(1, Math.floor(fanCount / 200) + 1));
+  /** 当前选中的心情 */
+  selectedMood: '开心',
 
+  /** 根据不同心情返回粉丝留言模板 */
+  getFanCommentsByMood(mood) {
+    const moodReplies = {
+      '开心': [
+        '看到你开心我也好开心！😄', '太棒了！一起庆祝！🎉', '笑容太治愈了，多笑笑！',
+        '你值得所有的快乐！', '今天也是元气满满的一天！', '开心就好，我们都支持你！',
+        '好想看到你开心的样子！', '你的快乐就是我们的快乐！', '继续保持好心情！🌟'
+      ],
+      '沮丧': [
+        '别难过，我们一直都在你身边💜', '抱抱你，一切都会好起来的', '加油！你是最棒的！',
+        '不开心就休息一下，我们等你', '不管发生什么，我们永远支持你！', '不要给自己太大压力了',
+        '你已经做得很好了！相信自己！', '来抱一个！(｡･ω･｡)', '哭出来也没关系，我们陪着你'
+      ],
+      '疲惫': [
+        '早点休息吧！身体最重要❤️', '辛苦了！好好睡一觉', '不要太拼了，我们会心疼的',
+        '今天就好好放松吧！', '健康第一，工作第二！', '给你寄了能量，请注意查收📦',
+        '好好吃饭好好睡觉！', '抱抱辛苦的宝贝', '今天早点睡哦，明天又是新的一天'
+      ],
+      '奋斗': [
+        '加油加油！！你一定可以的🔥', '努力的人最帅/最美！', '冲冲冲！向梦想前进！',
+        '你的努力我们都看在眼里！', '付出总会有回报的！', '一起加油！我也在努力！',
+        '全力以赴的你超级耀眼！', '奋斗的路上你不孤单！', '等你成功了我们一起庆祝！'
+      ],
+      '感谢': [
+        '我们也最感谢能遇见你！💕', '不用谢！是你给了我们力量', '要一直一直在一起！',
+        '感谢有你，让我的生活更精彩', '双向奔赴的爱最有意义了！', '永远支持你！',
+        '是你让我们聚在一起的！', '我们一起走下去吧！', '遇见你是最美好的事情✨'
+      ],
+      '思考': [
+        '说得很有道理！', '被你这段话治愈了', '哇，好深刻的想法！', '我也经常思考这个问题',
+        '你的思考给了我很启发！', '好有见解！不愧是偶像', '被你圈粉了！好有思想',
+        '把你的话记在小本本上了📝', '这样的你更让人着迷了'
+      ]
+    };
+    const replies = moodReplies[mood] || moodReplies['开心'];
+    const count = Math.min(8, Math.max(2, Math.floor(Math.random() * 4) + 2));
     const namePool = ['追星小蝶', '星光守护者', '萌萌哒粉丝', '偶像后援会', '彩虹糖',
                       '梦想家', '星星眼', '爱豆的小棉袄', '热血应援', '月亮代表我的心',
-                      '甜蜜炸弹', '橘子汽水', '夏日限定', '银河护卫队', '奶茶续命中'];
-    const congratsComments = [
-      '啊啊啊！老公/老婆发动态了！😍', '前排！今日份的快乐源泉！', '宝贝好棒！！永远支持你💜',
-      '太可爱了吧这也！', '每天都要开开心心的哦～', '今天也是为优秀偶像打call的一天！',
-      '期待新作品！！🔥', '加油加油！你是最闪亮的星✨', '呜呜呜终于等到你更新了',
-      '看到你努力的样子，我也被激励了！', '永远做你的粉丝！', '这张照片我可以看一天！',
-      '冲冲冲！向顶流进发！🚀', '你的努力我们都看到了！', '好想去看你的演唱会！',
-      '今天也是美颜暴击的一天！', '新歌什么时候出呀？', '照顾好自己，别太累了💕',
-      '你是我的全部！！', '此生无悔入坑！', '从练习生时期就关注你了！',
-      '太优秀了吧这也太优秀了', '每天都给我新的惊喜！'
-    ];
-
+                      '甜蜜炸弹', '橘子汽水', '夏日限定', '银河护卫队'];
     const comments = [];
-    for (let i = 0; i < commentCount; i++) {
-      const name = namePool[Math.floor(Math.random() * namePool.length)];
-      const text = congratsComments[Math.floor(Math.random() * congratsComments.length)];
-      const hoursAgo = Math.floor(Math.random() * 48) + 1;
+    for (let i = 0; i < count; i++) {
       comments.push({
-        name: name + (Math.random() > 0.5 ? Math.floor(Math.random() * 999) + 1 : ''),
-        text,
-        time: hoursAgo + '小时前',
+        name: namePool[Math.floor(Math.random() * namePool.length)] + (Math.random() > 0.5 ? Math.floor(Math.random() * 999) + 1 : ''),
+        text: replies[Math.floor(Math.random() * replies.length)],
+        time: Math.floor(Math.random() * 48) + 1 + '小时前',
         likes: Math.floor(Math.random() * 100)
       });
     }
     return comments;
   },
 
-  /** 发布新状态 */
+  /** 发布新状态（带心情标签） */
   postStatus() {
     const input = document.getElementById('fan-post-input');
     const text = input.value.trim();
@@ -1986,14 +2026,14 @@ const FanCircle = {
     const post = {
       id: Date.now(),
       text,
+      mood: this.selectedMood,
       time: '刚刚',
       day: chara.day,
       likes: Math.floor(Math.random() * 50) + 10,
-      comments: this.getFanComments()
+      comments: this.getFanCommentsByMood(this.selectedMood)
     };
     chara.posts.unshift(post);
 
-    // 发动态增加少量粉丝和压力
     const fanBoost = Math.floor(Math.random() * 20) + 5;
     chara.fans += fanBoost;
     const stressUp = Math.floor(Math.random() * 3) + 1;
@@ -2004,79 +2044,41 @@ const FanCircle = {
     GameState.autoSave();
     this.render();
     UI.renderStats();
-    chara.log.push({ day: chara.day, event: '📝 发布动态', summary: text.substring(0, 20) + '...' });
+    chara.log.push({ day: chara.day, event: `📝 [${post.mood}] ${text.substring(0, 15)}...`, summary: '发布了粉丝圈动态' });
     UI.renderLog();
-  },
-
-  /** 生成粉丝来信 */
-  generateFanLetter() {
-    const chara = GameState.data.character;
-    if (chara.fans < 50) return; // 粉丝太少没有来信
-
-    // 随机生成，不是每天都有
-    if (Math.random() > 0.3) return;
-
-    const senders = ['小玲', '阿花', '追梦人', '星空下', '小确幸', '温暖的手', '远方的你',
-                     '晴天娃娃', '彩虹使者', '萤火虫', '北极星', '微风', '晨曦', '星雨'];
-    const subjects = [
-      '❤️ 一封真挚的告白', '📩 来自粉丝的信', '💌 读过之后请加油',
-      '🌟 因为你，我变得更好', '🎀 想对你说的话', '✨ 你是我的光'
-    ];
-    const bodies = [
-      '喜欢你已经很长时间了，每次看到你在舞台上发光发热，我都特别感动。请继续加油！',
-      '你的音乐陪伴我度过了最艰难的时光，谢谢你。希望你能一直唱下去！',
-      '今天是我喜欢你的第365天，这一年因为你，我的生活多了很多色彩！',
-      '看到你那么努力，我也在努力成为更好的人。我们一起加油吧！',
-      '你最近的演出超级棒！我已经安利给所有好朋友了，他们也都入坑了！',
-      '不要太累了，要注意身体哦。我们会一直支持你的！',
-      '你的存在本身就是一种力量。谢谢你来到这个世界上。',
-      '我把我存的零花钱都用来买你的专辑了，值得！期待下一张！',
-      '每次看到你的笑容，所有的烦恼都烟消云散了。要一直开心呀！'
-    ];
-
-    const letter = {
-      id: Date.now() + Math.random(),
-      sender: senders[Math.floor(Math.random() * senders.length)],
-      subject: subjects[Math.floor(Math.random() * subjects.length)],
-      body: bodies[Math.floor(Math.random() * bodies.length)],
-      day: chara.day,
-      read: false
-    };
-    chara.fanLetters.unshift(letter);
-  },
-
-  /** 标记来信为已读 */
-  readLetter(id) {
-    const chara = GameState.data.character;
-    const letter = chara.fanLetters.find(l => l.id === id);
-    if (letter) {
-      letter.read = true;
-      // 读信回一点压力和健康
-      chara.stress = Math.max(0, chara.stress - 2);
-      chara.health = Math.min(CONFIG.MAX_HEALTH, chara.health + 1);
-      GameState.autoSave();
-      this.render();
-    }
   },
 
   /** 渲染粉丝圈 */
   render() {
     const chara = GameState.data.character;
 
+    // ---- 绑定心情标签事件 ----
+    document.querySelectorAll('.mood-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('.mood-btn').forEach(b => b.classList.remove('selected'));
+        btn.classList.add('selected');
+        this.selectedMood = btn.dataset.mood;
+      });
+    });
+
     // ---- 渲染动态列表 ----
     const postsContainer = document.getElementById('fan-posts-list');
     if (postsContainer) {
       if (chara.posts.length === 0) {
-        postsContainer.innerHTML = '<p class="text-xs text-white/30 text-center py-6">还没有发布过动态，写点什么吧！</p>';
+        postsContainer.innerHTML = '<p class="text-xs text-white/30 text-center py-6">还没有发布过动态，选个心情写点什么吧！</p>';
       } else {
         postsContainer.innerHTML = chara.posts.slice(0, 20).map(post => {
-          const comments = this.getFanComments(post);
+          const moodEmoji = { '开心': '😊', '沮丧': '😢', '疲惫': '😴', '奋斗': '🔥', '感谢': '🎉', '思考': '🤔' };
+          const comments = this.getFanCommentsByMood(post.mood || '开心');
           return `
             <div class="bg-white/5 rounded-xl p-3 mb-3" style="animation:fadeIn .3s ease-out;">
               <div class="flex items-start gap-2">
                 <span class="text-lg">${chara.gender === '男' ? '👤' : '👩'}</span>
                 <div class="flex-1 min-w-0">
-                  <div class="text-sm font-medium">${chara.name}</div>
+                  <div class="flex items-center gap-2">
+                    <span class="text-sm font-medium">${chara.name}</span>
+                    <span class="text-xs">${moodEmoji[post.mood] || '😊'} ${post.mood || '开心'}</span>
+                  </div>
                   <div class="text-xs text-white/30">Day ${post.day} · ${post.time}</div>
                 </div>
               </div>
@@ -2106,14 +2108,14 @@ const FanCircle = {
         lettersContainer.innerHTML = '<p class="text-xs text-white/30 text-center py-4">还没有粉丝来信～多互动就会收到哦</p>';
       } else {
         lettersContainer.innerHTML = letters.slice(0, 15).map(l => `
-          <div class="bg-white/5 rounded-lg p-3 mb-2 ${l.read ? 'opacity-60' : 'border-l-2 border-purple-400'}" style="cursor:pointer;"
-               onclick="FanCircle.readLetter(${l.id})">
+          <div class="bg-white/5 rounded-lg p-3 mb-2 ${l.read ? 'opacity-60' : 'border-l-2 border-purple-400'}"
+               style="cursor:pointer;" onclick="FanCircle.readLetter(${l.id})">
             <div class="flex items-center justify-between mb-1">
               <span class="text-xs font-medium ${l.read ? 'text-white/50' : 'text-purple-400'}">✉️ ${this.escapeHtml(l.subject)}</span>
               ${!l.read ? '<span class="text-xs text-purple-400 font-bold">NEW</span>' : ''}
             </div>
             <div class="text-xs text-white/40">${this.escapeHtml(l.sender)} · Day ${l.day}</div>
-            <div class="text-xs text-white/60 mt-1 ${l.read ? '' : 'line-clamp-2'}">${this.escapeHtml(l.body)}</div>
+            <div class="text-xs text-white/60 mt-1">${this.escapeHtml(l.body)}</div>
           </div>
         `).join('');
       }
@@ -2136,7 +2138,45 @@ const FanCircle = {
     }
   },
 
-  /** HTML 转义 */
+  /** 生成粉丝来信（每天日程后自动调用） */
+  generateFanLetter() {
+    const chara = GameState.data.character;
+    if (chara.fans < 50) return;
+    if (Math.random() > 0.3) return;
+    const senders = ['小玲', '阿花', '追梦人', '星空下', '小确幸', '温暖的手', '远方的你',
+                     '晴天娃娃', '彩虹使者', '萤火虫', '北极星', '微风', '晨曦', '星雨'];
+    const subjects = ['❤️ 一封真挚的告白', '📩 来自粉丝的信', '💌 读过之后请加油',
+                      '🌟 因为你，我变得更好', '🎀 想对你说的话', '✨ 你是我的光'];
+    const bodies = [
+      '喜欢你已经很长时间了，每次看到你在舞台上发光发热，我都特别感动。请继续加油！',
+      '你的音乐陪伴我度过了最艰难的时光，谢谢你。希望你能一直唱下去！',
+      '今天是我喜欢你的第365天，这一年因为你，我的生活多了很多色彩！',
+      '看到你那么努力，我也在努力成为更好的人。我们一起加油吧！',
+      '不要太累了，要注意身体哦。我们会一直支持你的！',
+      '你的存在本身就是一种力量。谢谢你来到这个世界上。'
+    ];
+    chara.fanLetters.unshift({
+      id: Date.now() + Math.random(),
+      sender: senders[Math.floor(Math.random() * senders.length)],
+      subject: subjects[Math.floor(Math.random() * subjects.length)],
+      body: bodies[Math.floor(Math.random() * bodies.length)],
+      day: chara.day, read: false
+    });
+  },
+
+  /** 标记来信已读 */
+  readLetter(id) {
+    const chara = GameState.data.character;
+    const letter = chara.fanLetters.find(l => l.id === id);
+    if (letter) {
+      letter.read = true;
+      chara.stress = Math.max(0, chara.stress - 2);
+      chara.health = Math.min(CONFIG.MAX_HEALTH, chara.health + 1);
+      GameState.autoSave();
+      this.render();
+    }
+  },
+
   escapeHtml(text) {
     const div = document.createElement('div');
     div.textContent = text;
