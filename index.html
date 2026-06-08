@@ -2,160 +2,2010 @@
 <html lang="zh-CN">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>🌟 偶像模拟器 - Idol Simulator</title>
-
-  <!-- Tailwind CSS (CDN) -->
+  <meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no">
+  <title>偶像模拟器 — Idol Simulator</title>
+  <!-- Tailwind CSS（仅用于布局辅助，绝大多数样式在 style.css） -->
   <script src="https://cdn.tailwindcss.com"></script>
-  <script>
-    tailwind.config = {
-      corePlugins: { preflight: false },  // 避免覆盖自定义样式
-    }
-  </script>
 
-  <!-- 自定义样式 -->
-  <link rel="stylesheet" href="style.css">
+<style>
+/* ============================================================
+   偶像模拟器 — 完全自包含样式表
+   ============================================================ */
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+body {
+  min-height: 100vh;
+  background: linear-gradient(135deg, #0f0c29 0%, #302b63 50%, #24243e 100%);
+  font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+  color: #fff;
+  overflow-x: hidden;
+}
+
+::-webkit-scrollbar { width: 4px; }
+::-webkit-scrollbar-track { background: rgba(255,255,255,.05); }
+::-webkit-scrollbar-thumb { background: rgba(255,255,255,.2); border-radius: 4px; }
+
+/* ---- 通用组件 ---- */
+.glass-card {
+  background: rgba(255,255,255,.06);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255,255,255,.1);
+  border-radius: 16px;
+}
+
+/* ---- 动画 ---- */
+@keyframes float { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-8px); } }
+@keyframes fadeIn { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
+@keyframes pulse { 0%,100% { transform: scale(1); } 50% { transform: scale(1.05); } }
+@keyframes shimmer { 0% { background-position: -200% center; } 100% { background-position: 200% center; } }
+@keyframes floatUp { 0% { opacity: 1; transform: translateY(0) scale(1); } 100% { opacity: 0; transform: translateY(-40px) scale(1.3); } }
+@keyframes slideUp { from { opacity: 0; transform: translateY(30px); } to { opacity: 1; transform: translateY(0); } }
+
+.float-number {
+  position: fixed;
+  pointer-events: none;
+  font-weight: 700;
+  font-size: 1.25rem;
+  z-index: 1000;
+  animation: floatUp .9s ease-out forwards;
+}
+.float-number.positive { color: #4ade80; }
+.float-number.negative { color: #f87171; }
+
+.screen { display: none; animation: fadeIn .4s ease-out; }
+.screen.active { display: block; }
+
+.gradient-text {
+  background: linear-gradient(90deg, #f7971e, #ffd200, #f7971e);
+  background-size: 200% auto;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  animation: shimmer 3s linear infinite;
+}
+
+.stat-bar-bg { height: 8px; background: rgba(255,255,255,.1); border-radius: 99px; overflow: hidden; }
+.stat-bar-fill { height: 100%; border-radius: 99px; transition: width .6s cubic-bezier(.34,1.56,.64,1); }
+
+.status-tag { display: inline-block; padding: 2px 10px; border-radius: 99px; font-size: .75rem; font-weight: 600; }
+.status-tag.green  { background: rgba(74,222,128,.2); color: #4ade80; }
+.status-tag.yellow { background: rgba(250,204,21,.2);  color: #facc15; }
+.status-tag.red    { background: rgba(248,113,113,.2); color: #f87171; }
+
+/* ---- Toast ---- */
+.toast {
+  position: fixed; top: 20px; left: 50%;
+  transform: translateX(-50%) translateY(-80px);
+  padding: 12px 28px; border-radius: 12px; font-weight: 600;
+  font-size: .95rem; z-index: 9999;
+  transition: transform .4s cubic-bezier(.34,1.56,.64,1);
+  pointer-events: none; max-width: 90vw; text-align: center;
+}
+.toast.show { transform: translateX(-50%) translateY(0); }
+.toast.success { background: rgba(74,222,128,.9); color: #000; }
+.toast.error   { background: rgba(248,113,113,.9); color: #000; }
+.toast.info    { background: rgba(96,165,250,.9); color: #000; }
+.toast.warning { background: rgba(250,204,21,.9); color: #000; }
+
+/* ---- 事件弹窗（普通 + 选项型） ---- */
+.event-modal-overlay {
+  position: fixed; inset: 0;
+  background: rgba(0,0,0,.6);
+  backdrop-filter: blur(6px);
+  z-index: 5000; display: none;
+  align-items: center; justify-content: center;
+  padding: 20px;
+}
+.event-modal-overlay.show { display: flex; }
+.event-modal {
+  background: linear-gradient(145deg,#1e1b4b,#312e81);
+  border: 1px solid rgba(255,255,255,.15);
+  border-radius: 20px; padding: 32px 28px;
+  max-width: 420px; width: 100%; text-align: center;
+  animation: fadeIn .3s ease-out;
+}
+.event-modal .icon { font-size: 3rem; margin-bottom: 8px; }
+.event-modal h3 { font-size: 1.3rem; margin-bottom: 8px; }
+.event-modal p { color: rgba(255,255,255,.7); margin-bottom: 20px; line-height: 1.6; font-size: .92rem; }
+.event-modal .choice-btn {
+  display: block; width: 100%; margin-bottom: 10px;
+  background: rgba(255,255,255,.08);
+  border: 1px solid rgba(255,255,255,.15);
+  color: #fff; padding: 12px 16px; border-radius: 12px;
+  font-weight: 500; font-size: .9rem; cursor: pointer;
+  transition: all .2s; text-align: left;
+}
+.event-modal .choice-btn:hover {
+  background: rgba(168,85,247,.2);
+  border-color: rgba(168,85,247,.5);
+  transform: translateY(-1px);
+}
+.event-modal .choice-btn .choice-detail {
+  display: block; font-size: .78rem; color: rgba(255,255,255,.5); margin-top: 4px;
+}
+.event-modal .btn-primary {
+  background: linear-gradient(90deg,#ec4899,#a855f7);
+  border: none; color: #fff; padding: 10px 32px; border-radius: 99px;
+  font-weight: 600; cursor: pointer;
+  transition: transform .2s, box-shadow .2s;
+}
+.event-modal .btn-primary:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(168,85,247,.4);
+}
+
+/* ---- 下拉选择器 ---- */
+.schedule-select {
+  width: 100%; padding: 12px 36px 12px 14px;
+  border-radius: 10px; border: 1px solid rgba(255,255,255,.15);
+  background: rgba(255,255,255,.08) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath fill='white' opacity='0.5' d='M1.41 0L6 4.58 10.59 0 12 1.41l-6 6-6-6z'/%3E%3C/svg%3E") no-repeat right 12px center;
+  color: #fff; font-size: .9rem; outline: none; cursor: pointer;
+  appearance: none; -webkit-appearance: none;
+  transition: border-color .2s;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.schedule-select:hover, .schedule-select:focus { border-color: rgba(168,85,247,.6); }
+.schedule-select option { background: #1e1b4b; color: #fff; padding: 8px; font-size: .85rem; }
+
+/* ---- 创建角色 ---- */
+.gender-option.selected { border-color: #ec4899; background: rgba(236,72,153,.2); color: #fff; }
+
+.talent-card {
+  background: rgba(255,255,255,.05);
+  border: 2px solid rgba(255,255,255,.1);
+  border-radius: 14px; padding: 16px; cursor: pointer;
+  transition: all .25s; text-align: center;
+}
+.talent-card:hover { border-color: rgba(168,85,247,.4); background: rgba(168,85,247,.1); }
+.talent-card.selected { border-color: #a855f7; background: rgba(168,85,247,.2); box-shadow: 0 0 20px rgba(168,85,247,.2); }
+
+.tag-btn {
+  background: rgba(255,255,255,.05);
+  border: 1px solid rgba(255,255,255,.1);
+  border-radius: 99px; padding: 6px 16px;
+  color: rgba(255,255,255,.7); font-size: .85rem; cursor: pointer;
+  transition: all .2s; white-space: nowrap;
+}
+.tag-btn:hover { border-color: rgba(236,72,153,.4); color: #fff; }
+.tag-btn.selected { background: rgba(236,72,153,.25); border-color: #ec4899; color: #fff; }
+
+.btn-gradient {
+  background: linear-gradient(90deg,#ec4899,#a855f7);
+  border: none; color: #fff; padding: 12px 32px; border-radius: 99px;
+  font-weight: 600; font-size: 1rem; cursor: pointer;
+  transition: transform .2s, box-shadow .2s;
+}
+.btn-gradient:hover { transform: translateY(-2px); box-shadow: 0 8px 24px rgba(168,85,247,.4); }
+.btn-gradient:active { transform: translateY(0); }
+.btn-gradient:disabled { opacity: .4; cursor: not-allowed; transform: none; box-shadow: none; }
+
+/* ---- 排行榜（专辑页） ---- */
+.chart-entry {
+  display: flex; align-items: center; gap: 12px;
+  padding: 12px; border-radius: 12px;
+  background: rgba(255,255,255,.04);
+  border: 1px solid rgba(255,255,255,.06);
+  transition: all .2s;
+}
+.chart-entry:hover { background: rgba(255,255,255,.08); }
+.chart-entry .rank-num {
+  width: 32px; text-align: center; font-weight: 800; font-size: 1.1rem;
+}
+.chart-entry.top-1 { border-color: rgba(250,204,21,.4); background: rgba(250,204,21,.08); }
+.chart-entry.top-2 { border-color: rgba(192,192,192,.3); background: rgba(192,192,192,.06); }
+.chart-entry.top-3 { border-color: rgba(205,127,50,.3); background: rgba(205,127,50,.06); }
+
+/* ---- 导航标签 ---- */
+.nav-tabs {
+  display: flex; gap: 6px; flex-wrap: wrap;
+}
+.nav-tab {
+  padding: 8px 20px; border-radius: 99px;
+  font-size: .85rem; font-weight: 500;
+  background: rgba(255,255,255,.06);
+  color: rgba(255,255,255,.5);
+  border: 1px solid transparent;
+  cursor: pointer; transition: all .2s;
+}
+.nav-tab:hover { color: #fff; background: rgba(255,255,255,.1); }
+.nav-tab.active { color: #fff; background: rgba(168,85,247,.25); border-color: rgba(168,85,247,.4); }
+
+/* ---- 隐藏辅助 ---- */
+.hidden { display: none !important; }
+
+/* ============================================================
+   响应式设计
+   ============================================================ */
+@media (max-width: 768px) {
+  .game-grid { grid-template-columns: 1fr !important; }
+  .event-modal { margin: 16px; padding: 28px 20px; }
+  .event-modal .icon { font-size: 2.5rem; }
+  .event-modal h3 { font-size: 1.15rem; }
+  .bottom-toolbar { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .bottom-toolbar button { width: 100%; text-align: center; justify-content: center; }
+}
+
+@media (max-width: 480px) {
+  #screen-game > div { padding: 10px !important; }
+  .glass-card { border-radius: 12px; }
+  #screen-title h1 { font-size: 2.2rem !important; }
+  #screen-title .text-6xl { font-size: 3rem !important; }
+
+  #screen-create .talent-card { padding: 10px 8px; }
+  #screen-create .talent-card .text-2xl { font-size: 1.3rem; }
+  #screen-create .talent-card .text-xs { display: none; }
+  #screen-create .glass-card { padding: 20px 16px !important; }
+
+  #header-info .text-lg { font-size: .95rem; }
+  #stats-panel .text-xl { font-size: 1.1rem; }
+  #stats-panel .p-4 { padding: 12px !important; }
+  #stats-panel .grid-cols-2 { gap: 8px; }
+  #stats-panel .rounded-xl { padding: 10px 6px !important; }
+  #stats-panel .rounded-xl .text-xl { font-size: 1rem; }
+  #schedule-panel .p-5 { padding: 14px !important; }
+  .schedule-select { font-size: .8rem; padding: 10px 32px 10px 10px; min-height: 42px; }
+  #schedule-panel h3 { font-size: .95rem; }
+  #execution-log .p-3 { padding: 10px !important; }
+  #log-panel .p-4 { padding: 12px !important; }
+  #log-panel .text-xs { font-size: .7rem; }
+  .event-modal { margin: 12px; padding: 24px 16px; border-radius: 16px; }
+  .event-modal .icon { font-size: 2rem; }
+  .event-modal h3 { font-size: 1rem; }
+  .event-modal p { font-size: .85rem; margin-bottom: 16px; }
+  .event-modal .btn-primary { padding: 12px 28px; width: 100%; }
+  .event-modal .choice-btn { font-size: .82rem; padding: 10px 14px; }
+  .toast { font-size: .8rem; padding: 10px 18px; max-width: 92vw; }
+  .float-number { font-size: 1rem; }
+  .bottom-toolbar button { font-size: .8rem !important; padding: 10px 12px !important; min-height: 44px; }
+  #stats-panel .text-xs.mt-2 { font-size: .65rem; line-height: 1.4; }
+  .chart-entry { padding: 10px; }
+  .chart-entry .rank-num { width: 26px; font-size: 1rem; }
+}
+
+@media (max-width: 360px) {
+  #screen-game > div { padding: 6px !important; }
+  .glass-card { border-radius: 10px; }
+  .bottom-toolbar { grid-template-columns: 1fr 1fr; gap: 6px; }
+}
+</style>
 </head>
 <body>
 
-  <!-- ============================================================
-       事件弹窗 (全局共用 Overlay)
-       ============================================================ -->
-  <div class="event-modal-overlay" id="event-modal-overlay">
-    <div class="event-modal">
-      <div class="icon" id="event-modal-icon">🌟</div>
-      <h3 id="event-modal-title">事件标题</h3>
-      <p id="event-modal-text">事件描述</p>
-      <div id="event-modal-effects" class="text-sm text-white/60 mb-4"></div>
-      <button id="event-modal-btn">确 认</button>
+<!-- ============================================================
+     公用事件弹窗（普通确认 + 选择分支 共用同一个 overlay）
+     ============================================================ -->
+<div class="event-modal-overlay" id="event-modal-overlay">
+  <div class="event-modal" id="event-modal-content">
+    <div class="icon" id="event-modal-icon">🌟</div>
+    <h3 id="event-modal-title">事件标题</h3>
+    <p id="event-modal-text">事件描述</p>
+    <div id="event-modal-body">
+      <!-- 由 JS 动态渲染确认按钮或选项 -->
     </div>
   </div>
+</div>
 
-  <!-- ============================================================
-       屏幕 1: 标题页面
-       ============================================================ -->
-  <div class="screen active" id="screen-title">
-    <div class="min-h-screen flex items-center justify-center p-4">
-      <div class="text-center" style="animation: fadeIn .6s ease-out;">
+<!-- ============================================================
+     屏幕 1: 标题页面
+     ============================================================ -->
+<div class="screen active" id="screen-title">
+  <div class="min-h-screen flex items-center justify-center p-4">
+    <div class="text-center" style="animation: fadeIn .6s ease-out;">
+      <div class="text-6xl mb-4" style="animation: float 4s ease-in-out infinite;">🌟</div>
+      <h1 class="text-5xl font-black gradient-text mb-2">偶像模拟器</h1>
+      <p class="text-white/50 text-lg mb-2">Idol Simulator</p>
+      <p class="text-white/40 text-sm mb-10">成为最闪亮的星星 ✨</p>
 
-        <!-- 标题 -->
-        <div class="text-6xl mb-4" style="animation: float 4s ease-in-out infinite;">🌟</div>
-        <h1 class="text-5xl font-black gradient-text mb-2">偶像模拟器</h1>
-        <p class="text-white/50 text-lg mb-2">Idol Simulator</p>
-        <p class="text-white/40 text-sm mb-10">成为最闪亮的星星 ✨</p>
-
-        <!-- 按钮组 -->
-        <div class="flex flex-col items-center gap-4 max-w-xs mx-auto">
-          <button onclick="App.startNewGame()"
-                  class="btn-gradient w-full text-lg py-3">
-            ✨ 新的旅程
-          </button>
-
-          <button onclick="App.continueGame()"
-                  class="continue-btn glass-card w-full py-3 px-6 text-white/80 font-medium
-                         hover:text-white hover:bg-white/10 transition-all">
-            📂 继续游戏
-          </button>
-
-          <button onclick="App.resetGame()"
-                  class="text-sm text-white/30 hover:text-red-400 transition-colors mt-2">
-            🗑️ 重置游戏
-          </button>
-        </div>
-
-        <!-- 版本号 -->
-        <p class="text-white/20 text-xs mt-12">v1.0.0 · Made with ❤️</p>
-      </div>
-    </div>
-  </div>
-
-  <!-- ============================================================
-       屏幕 2: 角色创建
-       ============================================================ -->
-  <div class="screen" id="screen-create">
-    <!-- 由 CharacterCreator.render() 动态渲染 -->
-  </div>
-
-  <!-- ============================================================
-       屏幕 3: 游戏主界面
-       ============================================================ -->
-  <div class="screen" id="screen-game">
-    <div class="min-h-screen p-4 md:p-6">
-
-      <!-- 顶部信息栏 -->
-      <div class="glass-card p-4 mb-4" id="header-info">
-        <!-- 由 UI.renderHeader() 动态渲染 -->
-      </div>
-
-      <!-- 主网格：左侧属性 + 右侧日程 -->
-      <div class="game-grid grid grid-cols-1 md:grid-cols-3 gap-4">
-
-        <!-- 左列：属性面板 (占2列) -->
-        <div class="md:col-span-2 space-y-3">
-          <!-- 属性面板 -->
-          <div id="stats-panel">
-            <!-- 由 UI.renderStats() 动态渲染 -->
-          </div>
-          <!-- 事件日志 -->
-          <div id="log-panel">
-            <!-- 由 UI.renderLog() 动态渲染 -->
-          </div>
-        </div>
-
-        <!-- 右列：日程面板 -->
-        <div id="schedule-panel" class="space-y-3">
-          <!-- 由 Schedule.render() 动态渲染 -->
-        </div>
-
-      </div>
-
-      <!-- 底部工具栏（手机端自动变为 2x2 网格） -->
-      <div class="mt-4 flex flex-wrap justify-center gap-3 bottom-toolbar">
-        <button onclick="App.saveGame()"
-                class="px-5 py-2 rounded-full bg-white/5 border border-white/10 text-sm text-white/60
-                       hover:text-white hover:bg-white/10 transition-all">
-          💾 存档
+      <div class="flex flex-col items-center gap-4 max-w-xs mx-auto">
+        <button onclick="App.startNewGame()" class="btn-gradient w-full text-lg py-3">
+          ✨ 新的旅程
         </button>
-        <button onclick="App.loadGame()"
-                class="px-5 py-2 rounded-full bg-white/5 border border-white/10 text-sm text-white/60
+        <button onclick="App.continueGame()"
+                class="continue-btn glass-card w-full py-3 px-6 text-white/80 font-medium
                        hover:text-white hover:bg-white/10 transition-all">
-          📂 读档
+          📂 继续游戏
         </button>
-        <button onclick="if(confirm('确定要重置游戏吗？')){App.resetGame();App.backToTitle();}"
-                class="px-5 py-2 rounded-full bg-white/5 border border-white/10 text-sm text-red-400/60
-                       hover:text-red-400 hover:bg-white/10 transition-all">
+        <button onclick="App.resetGame()"
+                class="text-sm text-white/30 hover:text-red-400 transition-colors mt-2">
           🗑️ 重置游戏
         </button>
-        <button onclick="App.backToTitle()"
-                class="px-5 py-2 rounded-full bg-white/5 border border-white/10 text-sm text-white/60
-                       hover:text-white hover:bg-white/10 transition-all">
-          🏠 返回标题
-        </button>
       </div>
-
+      <p class="text-white/20 text-xs mt-12" id="version-text">v2.0.0 · Made with ❤️</p>
     </div>
   </div>
+</div>
 
-  <!-- ============================================================
-       屏幕 4: 游戏结束
-       ============================================================ -->
-  <div class="screen" id="screen-gameover">
-    <div class="min-h-screen flex items-center justify-center p-4 gameover-content">
-      <!-- 由 App.showGameOver() 动态渲染 -->
+<!-- ============================================================
+     屏幕 2: 角色创建
+     ============================================================ -->
+<div class="screen" id="screen-create">
+  <!-- 由 CharacterCreator.render() 动态渲染 -->
+</div>
+
+<!-- ============================================================
+     屏幕 3: 游戏主界面
+     ============================================================ -->
+<div class="screen" id="screen-game">
+  <div class="min-h-screen p-4 md:p-6">
+
+    <!-- 顶部信息栏 -->
+    <div class="glass-card p-4 mb-4" id="header-info"></div>
+
+    <!-- 导航标签：主界面 / 专辑榜单 / 存档设置 -->
+    <div class="nav-tabs mb-4">
+      <span class="nav-tab active" data-tab="main">📋 主界面</span>
+      <span class="nav-tab" data-tab="album">💿 专辑榜单</span>
+      <span class="nav-tab" data-tab="settings">⚙️ 设置</span>
     </div>
+
+    <!-- 主界面内容（每天日程 + 属性面板） -->
+    <div id="game-tab-main">
+      <div class="game-grid grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div class="md:col-span-2 space-y-3">
+          <div id="stats-panel"></div>
+          <div id="log-panel"></div>
+        </div>
+        <div id="schedule-panel" class="space-y-3"></div>
+      </div>
+    </div>
+
+    <!-- 专辑榜单页面 -->
+    <div id="game-tab-album" class="hidden">
+      <div class="glass-card p-4 mb-4">
+        <h3 class="text-lg font-bold mb-3">💿 专辑榜单</h3>
+        <p class="text-sm text-white/50 mb-4" id="chart-description">努力写歌、发布单曲，冲击排行榜！</p>
+        <div id="album-content">
+          <!-- 由 AlbumChartSystem.render() 动态填充 -->
+        </div>
+      </div>
+    </div>
+
+    <!-- 存档/设置页面 -->
+    <div id="game-tab-settings" class="hidden">
+      <div class="glass-card p-4 max-w-md mx-auto">
+        <h3 class="text-lg font-bold mb-4">⚙️ 游戏设置</h3>
+        <div class="space-y-4">
+          <div class="bg-white/5 rounded-xl p-4">
+            <p class="text-sm text-white/40 mb-1">存档状态</p>
+            <p class="text-sm text-white/70" id="settings-save-info">当前无存档</p>
+          </div>
+          <div class="flex flex-col gap-3">
+            <button onclick="App.saveGame()" class="btn-gradient w-full py-3 text-base">
+              💾 手动存档
+            </button>
+            <button onclick="App.loadGame()"
+                    class="w-full py-3 px-6 rounded-full bg-white/5 border border-white/10 text-sm text-white/70
+                           hover:text-white hover:bg-white/10 transition-all">
+              📂 读取存档
+            </button>
+            <button onclick="if(confirm('确定要重置游戏吗？所有进度将丢失！')){App.resetGame();App.backToTitle();}"
+                    class="w-full py-3 px-6 rounded-full bg-white/5 border border-white/10 text-sm text-red-400/70
+                           hover:text-red-400 hover:bg-white/10 transition-all">
+              🗑️ 重置游戏
+            </button>
+            <button onclick="App.backToTitle()"
+                    class="w-full py-3 px-6 rounded-full bg-white/5 border border-white/10 text-sm text-white/70
+                           hover:text-white hover:bg-white/10 transition-all">
+              🏠 返回标题
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 底部工具栏 -->
+    <div class="mt-4 flex flex-wrap justify-center gap-3 bottom-toolbar">
+      <button onclick="App.saveGame()"
+              class="px-5 py-2 rounded-full bg-white/5 border border-white/10 text-sm text-white/60
+                     hover:text-white hover:bg-white/10 transition-all">
+        💾 存档
+      </button>
+      <button onclick="AlbumChartSystem.releaseSingle()"
+              class="px-5 py-2 rounded-full bg-white/5 border border-white/10 text-sm text-white/60
+                     hover:text-white hover:bg-white/10 transition-all">
+        💿 发布单曲
+      </button>
+      <button onclick="App.showRanking()"
+              class="px-5 py-2 rounded-full bg-white/5 border border-white/10 text-sm text-white/60
+                     hover:text-white hover:bg-white/10 transition-all">
+        🏆 人气排名
+      </button>
+      <button onclick="if(confirm('确定要重置游戏吗？')){App.resetGame();App.backToTitle();}"
+              class="px-5 py-2 rounded-full bg-white/5 border border-white/10 text-sm text-red-400/60
+                     hover:text-red-400 hover:bg-white/10 transition-all">
+        🗑️ 重置
+      </button>
+    </div>
+
   </div>
+</div>
 
-  <!-- ============================================================
-       JavaScript 模块 (按依赖顺序加载)
-       ============================================================ -->
-  <script src="js/config.js"></script>      <!-- 游戏配置 -->
-  <script src="js/state.js"></script>       <!-- 存档管理 -->
-  <script src="js/ui.js"></script>          <!-- UI渲染（被其他模块依赖） -->
-  <script src="js/character.js"></script>   <!-- 角色创建 -->
-  <script src="js/events.js"></script>      <!-- 随机事件 -->
-  <script src="js/growth.js"></script>      <!-- 成长系统 -->
-  <script src="js/schedule.js"></script>    <!-- 日程系统 -->
-  <script src="js/app.js"></script>         <!-- 主控制器 -->
+<!-- ============================================================
+     屏幕 4: 游戏结束
+     ============================================================ -->
+<div class="screen" id="screen-gameover">
+  <div class="min-h-screen flex items-center justify-center p-4">
+    <div id="gameover-content" class="w-full max-w-md"></div>
+  </div>
+</div>
 
+<!-- ============================================================
+     所有 JavaScript — 完全自包含，按依赖顺序组织
+     ============================================================ -->
+<script>
+/**
+ * ============================================================
+ * 偶像模拟器 v2.0 — 完整单文件版
+ * ============================================================
+ *
+ * 【💡 修改指南】
+ * 1. 属性成长速度 → 修改 CONFIG.ACTIVITIES 中各活动的 effects 数值范围
+ * 2. 新增随机事件 → 在 CONFIG.EVENTS.good / bad / neutral 数组中添加新条目
+ * 3. 调高出道难度 → 调高 CONFIG.STAGES 中对应阶段的 statReq / fanReq
+ * 4. 新增活动 → 在 CONFIG.ACTIVITIES 中添加条目，可选添加到 STAGE_UNLOCK_ACTIVITIES
+ */
+
+// ============================================================
+// 1. 游戏配置（所有可调数值集中管理）
+// ============================================================
+const CONFIG = {
+  VERSION: '2.0.0',
+  MAX_STAT: 100,
+  MIN_STAT: 0,
+  MAX_STRESS: 100,
+  MAX_HEALTH: 100,
+  ACTIVITIES_PER_DAY: 4,
+  SAVE_KEY: 'idol_sim_save',
+
+  // ---- 初始属性 ----
+  INITIAL_STATS: {
+    singing: 20, dancing: 20, appearance: 20, entertainment: 20,
+    stress: 0, health: 100, fans: 0, money: 1000
+  },
+
+  // ---- 初始天赋（选一） ----
+  TALENTS: [
+    { id: 'sing',    name: '🎤 主唱',     desc: '天生好嗓音，声乐天赋异禀',  bonus: { singing: 15 } },
+    { id: 'dance',   name: '💃 主舞',     desc: '舞感一流，身体协调性极佳',  bonus: { dancing: 15 } },
+    { id: 'visual',  name: '✨ 门面',     desc: '精致外貌，镜头感十足',      bonus: { appearance: 15 } },
+    { id: 'variety', name: '🎭 艺能',     desc: '幽默风趣，综艺感爆棚',      bonus: { entertainment: 15 } },
+    { id: 'produce', name: '🎵 创作',     desc: '创作才华出众，写歌天赋异禀', bonus: { entertainment: 10, singing: 5 } }
+  ],
+
+  // ---- 人设标签（选2） ----
+  TAGS: [
+    { id: 'hardwork',    name: '努力型',  desc: '训练效果 +10%',   effectType: 'train_boost' },
+    { id: 'talent_born', name: '天赋型',  desc: '全属性 +3',       effectType: 'stat_boost' },
+    { id: 'cute',        name: '可爱风',  desc: '涨粉效果 +15%',   effectType: 'fan_boost' },
+    { id: 'cool',        name: '酷飒风',  desc: '打工收入 +15%',   effectType: 'money_boost' },
+    { id: 'healing',     name: '治愈系',  desc: '休息效果 +20%',   effectType: 'rest_boost' },
+    { id: 'active',      name: '活力派',  desc: '压力增长 -15%',   effectType: 'stress_reduce' },
+    { id: 'charming',    name: '魅力型',  desc: '社交效果 +15%',   effectType: 'social_boost' }
+  ],
+
+  // ---- 基础日程活动 ----
+  // 【💡 修改成长速度】调整下方 effects 中的数值范围即可
+  ACTIVITIES: {
+    train_sing:     { name: '🎵 声乐训练',  type: 'train',
+                      effects: { singing: [3,7], stress: [5,8] },
+                      desc: '练习发声技巧，提升唱功' },
+    train_dance:    { name: '💃 舞蹈训练',  type: 'train',
+                      effects: { dancing: [3,7], stress: [5,8] },
+                      desc: '练习舞蹈动作，提升舞技' },
+    train_visual:   { name: '💄 形体训练',  type: 'train',
+                      effects: { appearance: [3,7], stress: [5,8] },
+                      desc: '保持最佳体态，提升外貌' },
+    train_variety:  { name: '🎬 艺能训练',  type: 'train',
+                      effects: { entertainment: [3,7], stress: [5,8] },
+                      desc: '学习综艺技巧，提升艺能' },
+    rest:           { name: '😴 休息',      type: 'rest',
+                      effects: { stress: [-12,-18], health: [5,10] },
+                      desc: '放松身心，恢复体力' },
+    hospital:       { name: '🏥 去医院',    type: 'rest',
+                      effects: { health: [15,25], money: [-300,-500] },
+                      desc: '专业医疗恢复健康' },
+    work_parttime:  { name: '💼 便利店打工', type: 'work',
+                      effects: { money: [300,500], stress: [5,10], health: [-3,-5] },
+                      desc: '赚取生活费' },
+    work_perform:   { name: '🎪 兼职演出',  type: 'work',
+                      effects: { money: [500,800], entertainment: [1,3], stress: [8,12] },
+                      desc: '小型商业演出，积累经验' },
+    social_fanmeet:{ name: '🤝 粉丝见面会', type: 'social',
+                      effects: { fans: [20,50], stress: [5,8] },
+                      desc: '与粉丝互动交流' },
+    social_live:    { name: '📱 直播互动',  type: 'social',
+                      effects: { fans: [30,80], money: [100,300], stress: [8,12] },
+                      desc: '开直播和粉丝聊天' },
+    // ↓↓↓ 【新增活动】社交联谊 ↓↓↓
+    social_date:    { name: '💕 社交联谊',  type: 'social',
+                      effects: { entertainment: [2,4], stress: [-5,-10], money: [-100,-300] },
+                      desc: '与圈内朋友聚会交流，放松心情' },
+    // ↓↓↓ 【新增活动】闭关写歌 ↓↓↓
+    write_song:     { name: '✍️ 闭关写歌',  type: 'creative',
+                      effects: { entertainment: [4,8], stress: [8,14] },
+                      desc: '专注创作，写出属于自己的歌曲' }
+  },
+
+  // ---- 高级活动（随阶段解锁） ----
+  ADVANCED_ACTIVITIES: {
+    studio:       { name: '🎙️ 录音室录制',  type: 'train',
+                    effects: { singing: [5,10], money: [-300,-500], stress: [8,12] },
+                    desc: '专业录音棚录制', unlockStage: 'debut' },
+    rehearsal:    { name: '🏋️ 舞蹈排练室',  type: 'train',
+                    effects: { dancing: [5,10], stress: [8,12] },
+                    desc: '专业舞蹈排练', unlockStage: 'debut' },
+    photoshoot:   { name: '📸 拍摄写真',    type: 'social',
+                    effects: { appearance: [3,6], money: [500,1000], fans: [50,100], stress: [5,8] },
+                    desc: '拍摄宣传写真', unlockStage: 'single' },
+    variety_show: { name: '📺 综艺录制',    type: 'social',
+                    effects: { entertainment: [5,8], money: [500,1000], fans: [100,300], stress: [8,12] },
+                    desc: '参加综艺节目', unlockStage: 'single' },
+    concert:      { name: '🎤 小型演唱会',  type: 'social',
+                    effects: { fans: [200,500], money: [1000,3000], stress: [12,18], health: [-3,-6] },
+                    desc: '举办小型演唱会', unlockStage: 'chart' },
+    red_carpet:   { name: '🌟 红毯颁奖礼',  type: 'social',
+                    effects: { appearance: [3,5], fans: [300,800], money: [2000,5000], stress: [10,15] },
+                    desc: '走红毯、参加颁奖典礼', unlockStage: 'celebrity' },
+    film_cameo:   { name: '🎬 影视客串',    type: 'work',
+                    effects: { entertainment: [4,8], fans: [500,1000], money: [3000,8000], stress: [10,15] },
+                    desc: '在热门剧集中客串角色', unlockStage: 'celebrity' }
+  },
+
+  // ---- 成长阶段 ----
+  // 【💡 调高出道难度】增大下方 statReq / fanReq 数值即可
+  STAGES: [
+    { id: 'trainee',   name: '⭐ 练习生',     desc: '刻苦训练的新人',
+      statReq: 0,   fanReq: 0,    nextReq: null },
+    { id: 'debut',     name: '🌈 小分队出道', desc: '以组合形式正式出道',
+      statReq: 40,  fanReq: 0,    nextReq: { stage: 'trainee' } },
+    { id: 'single',    name: '💿 发行单曲',   desc: '发布首支个人单曲',
+      statReq: 55,  fanReq: 1000, nextReq: { stage: 'debut', fans: 1000 } },
+    { id: 'chart',     name: '🏆 打歌冲榜',   desc: '冲击音乐排行榜',
+      statReq: 65,  fanReq: 5000, nextReq: { stage: 'single', stats: 60 } },
+    { id: 'celebrity', name: '👑 一线明星',   desc: '成为顶级偶像巨星！',
+      statReq: 80,  fanReq: 20000, nextReq: { stage: 'chart', fans: 20000, stats: 75 } }
+  ],
+
+  // ---- 随机事件库（可自由扩充） ----
+  // 【💡 新增随机事件】在下方 good / bad / neutral 数组中添加新对象即可
+  EVENTS: {
+    good: [
+      { id: 'scout',    title: '🌟 街头星探',
+        text: '你在街头被知名经纪公司星探发现！资源瞬间暴涨！',
+        effects: { fans: [200,500] } },
+      { id: 'viral',    title: '📈 视频走红',
+        text: '你的练习视频在社交媒体上意外走红，收获大量关注！',
+        effects: { fans: [500,1000] } },
+      { id: 'mentor',   title: '🙏 前辈指导',
+        text: '一位资深前辈对你进行了一对一指导，各能力大幅提升！',
+        effects: { singing: [3,6], dancing: [3,6], appearance: [2,4], entertainment: [3,6] } },
+      { id: 'endorse',  title: '💼 代言邀约',
+        text: '你获得了品牌代言机会！不仅赚到钱还涨了知名度！',
+        effects: { money: [2000,5000], fans: [100,300] } },
+      { id: 'fansupport', title: '🎁 粉丝应援',
+        text: '粉丝们为你组织了大型应援活动，让你感动又充满能量！',
+        effects: { fans: [100,300], health: [5,10], stress: [-5,-10] } },
+      { id: 'variety_invite', title: '📺 综艺邀请',
+        text: '知名综艺节目向你发出录制邀请，这是展示自己的好机会！',
+        effects: { entertainment: [3,6], money: [1000,2000], fans: [200,500] } },
+      // ↓↓↓ 新增好事 ↓↓↓
+      { id: 'award_nom', title: '🏅 奖项提名',
+        text: '你的作品获得了年度新人奖提名！整个圈子都在关注你！',
+        effects: { fans: [300,600], entertainment: [2,5], money: [1000,3000] } },
+      { id: 'collab',   title: '🤝 跨界合作',
+        text: '一位著名音乐人主动邀请你合作！这是提升影响力的绝佳机会！',
+        effects: { singing: [3,5], entertainment: [3,5], fans: [200,500] } },
+      { id: 'charity',  title: '❤️ 公益活动',
+        text: '你参与的公益活动受到社会好评，正面形象大幅提升！',
+        effects: { fans: [150,400], stress: [-5,-10], health: [3,6] } }
+    ],
+    bad: [
+      { id: 'blackfan', title: '💢 黑粉攻击',
+        text: '遭遇黑粉恶意造谣，粉丝流失且压力巨大！',
+        effects: { fans: [-100,-300], stress: [10,15] } },
+      { id: 'mistake',  title: '😰 舞台失误',
+        text: '演出中出现严重失误，遭到观众和网友批评！',
+        effects: { singing: [-2,-5], dancing: [-2,-5], stress: [15,20] } },
+      { id: 'injury',   title: '🏥 训练受伤',
+        text: '高强度训练导致身体受伤，健康严重下降！',
+        effects: { health: [-15,-25], stress: [10,15] } },
+      { id: 'overwork', title: '😵 过度疲劳',
+        text: '行程太满身体亮红灯，健康受损！',
+        effects: { health: [-8,-15], stress: [15,20] } },
+      { id: 'stolen',   title: '😤 资源被抢',
+        text: '重要的资源被竞争对手抢走，非常沮丧！',
+        effects: { stress: [15,20] } },
+      { id: 'scandal',  title: '📰 负面新闻',
+        text: '被传出不实负面新闻，形象受损粉丝流失！',
+        effects: { fans: [-200,-500], stress: [10,15] } },
+      // ↓↓↓ 新增坏事 ↓↓↓
+      { id: 'flop',     title: '📉 作品扑街',
+        text: '新作品反响不佳，播放量惨淡，受到了不少质疑！',
+        effects: { fans: [-100,-200], stress: [12,18] } },
+      { id: 'betray',   title: '😞 队友背叛',
+        text: '信任的队友突然选择了离开，对你打击很大！',
+        effects: { stress: [15,25], entertainment: [-1,-3] } },
+      { id: 'fine',     title: '⚖️ 合同纠纷',
+        text: '因合约条款问题产生法律纠纷，损失了一笔钱！',
+        effects: { money: [-2000,-5000], stress: [10,15] } },
+      { id: 'accident', title: '🚗 突发意外',
+        text: '赶行程途中遇到小车祸，虽然没有大碍但受到了惊吓！',
+        effects: { health: [-10,-20], stress: [10,15] } }
+    ],
+    neutral: [
+      { id: 'fanletter', title: '💌 粉丝来信',
+        text: '收到一封暖心的粉丝来信，心情好了很多！',
+        effects: { stress: [-8,-12], health: [3,6] } },
+      { id: 'weather',   title: '🌧️ 天气影响',
+        text: '恶劣天气打乱了你的计划，有些烦躁',
+        effects: { stress: [5,10] } },
+      { id: 'gossip',    title: '🗣️ 后台八卦',
+        text: '听到一些业内八卦，放松了一下心情',
+        effects: { stress: [-5,-8], entertainment: [1,2] } },
+      // ↓↓↓ 新增中性事件 ↓↓↓
+      { id: 'coincidence', title: '🍀 偶然相遇',
+        text: '在咖啡厅偶遇了中学时期的偶像，对方给了你鼓励！',
+        effects: { stress: [-5,-10], entertainment: [1,3] } },
+      { id: 'lost_item', title: '🔑 丢失物品',
+        text: '弄丢了重要的随身物品，花了好一番功夫才找到',
+        effects: { stress: [5,10], money: [-100,-200] } },
+      { id: 'dream',    title: '💭 奇妙梦境',
+        text: '做了一个成为巨星的梦，醒来后充满干劲！',
+        effects: { stress: [-5,-10], health: [2,5] } }
+    ]
+  },
+
+  // ---- 带选项的分支事件 ----
+  // 这些事件会让玩家从 2-3 个选项中选择，每个选项带来不同结果
+  BRANCH_EVENTS: [
+    {
+      id: 'branch_rumor',
+      title: '📰 绯闻风波',
+      text: '狗仔队拍到了你和异性友人共进晚餐的照片，断章取义制造绯闻！你打算如何处理？',
+      choices: [
+        { label: '🤫 冷处理，不予回应',
+          detail: '绯闻会自行消退，但可能会有损失',
+          effects: { fans: [-100,-200], stress: [5,10] },
+          result: '绯闻渐渐平息，但部分粉丝因此流失' },
+        { label: '📢 召开记者会澄清',
+          detail: '花一笔钱公关，但可能转危为安',
+          effects: { money: [-1000,-2000], fans: [100,300], entertainment: [2,4] },
+          result: '你坦诚的解释得到了粉丝的理解，甚至涨了一波粉' },
+        { label: '😂 自嘲式幽默回应',
+          detail: '用幽默感化解危机，剑走偏锋',
+          effects: { fans: [50,200], entertainment: [3,5], stress: [-5,-8] },
+          result: '你的幽默回应让路人转粉，危机变转机！' }
+      ]
+    },
+    {
+      id: 'branch_offer',
+      title: '💼 重要邀约',
+      text: '你同时收到了两个邀约：一档热门综艺的固定嘉宾机会，和一个知名品牌的代言邀约。但你的档期只能二选一！',
+      choices: [
+        { label: '📺 接受综艺邀约',
+          detail: '提升曝光度和艺能感，但比较耗时',
+          effects: { entertainment: [5,8], fans: [300,600], stress: [8,12] },
+          result: '你在综艺上表现出色，圈粉无数！' },
+        { label: '💎 接受品牌代言',
+          detail: '获得丰厚收入，提升时尚形象',
+          effects: { money: [3000,6000], appearance: [2,4], fans: [200,400], stress: [5,8] },
+          result: '代言广告上线后大受好评，时尚资源提升！' }
+      ]
+    },
+    {
+      id: 'branch_show',
+      title: '🎤 演出意外',
+      text: '演出中途音响突然出现故障！台下观众开始骚动，你怎么应对？',
+      choices: [
+        { label: '🎵 即兴清唱',
+          detail: '展示真实唱功，但风险很大',
+          effects: { singing: [2,5], fans: [100,300], stress: [5,10] },
+          result: '你凭借扎实的唱功征服了全场，掌声雷动！' },
+        { label: '🗣️ 互动聊天',
+          detail: '和观众聊天拖延时间，展现亲和力',
+          effects: { entertainment: [3,5], fans: [50,150], stress: [3,6] },
+          result: '你幽默的谈吐稳住了场面，观众好感度上升' },
+        { label: '💃 即兴舞蹈',
+          detail: '用舞蹈带动气氛，化劣势为优势',
+          effects: { dancing: [2,5], fans: [50,200], stress: [8,12] },
+          result: '你的即兴舞蹈太精彩了，反而成了演出的亮点！' }
+      ]
+    },
+    {
+      id: 'branch_fan',
+      title: '💕 粉丝冲突',
+      text: '你的两个粉丝团体因为一点小事在网上吵了起来，甚至开始互相攻击。作为偶像你该如何处理？',
+      choices: [
+        { label: '📱 发帖劝导',
+          detail: '公开发声呼吁和平，展现担当',
+          effects: { fans: [100,200], entertainment: [2,3], stress: [3,5] },
+          result: '你的理性发声让大部分粉丝冷静下来，路人好感提升' },
+        { label: '🤫 私下调解',
+          detail: '联系粉丝代表私下沟通，避免扩大影响',
+          effects: { fans: [50,100], stress: [-5,-8], money: [-500,-1000] },
+          result: '通过私下沟通平息了战火，粉丝更加团结' }
+      ]
+    }
+  ],
+
+  // ---- 事件概率 ----
+  EVENT_CHANCE: 0.45,
+  BRANCH_EVENT_CHANCE: 0.35,     // 触发分支事件的条件概率（在普通事件之后判定）
+  EVENT_GOOD_WEIGHT: 0.35,
+  EVENT_BAD_WEIGHT: 0.40,
+  EVENT_NEUTRAL_WEIGHT: 0.25,
+
+  // ---- 各阶段解锁的活动 ID ----
+  STAGE_UNLOCK_ACTIVITIES: {
+    debut:     ['studio', 'rehearsal'],
+    single:    ['photoshoot', 'variety_show'],
+    chart:     ['concert'],
+    celebrity: ['red_carpet', 'film_cameo']
+  },
+
+  // ---- 排行榜NPC（用于人气排名对比） ----
+  NPC_NAMES: [
+    '星野 光', '月城 舞', '天海 音', '神崎 凛',
+    '朝仓 风', '绫濑 遥', '橘 真央', '氷室 奏'
+  ]
+};
+
+// ============================================================
+// 2. 游戏状态管理（存档/读档/自动存档）
+// ============================================================
+const GameState = {
+  data: null,
+
+  /** 创建新角色 */
+  createCharacter(info) {
+    const stats = { ...CONFIG.INITIAL_STATS };
+    const talent = CONFIG.TALENTS.find(t => t.id === info.talent);
+    if (talent) {
+      Object.entries(talent.bonus).forEach(([key, val]) => {
+        stats[key] = Math.min(CONFIG.MAX_STAT, stats[key] + val);
+      });
+    }
+    const selectedTags = CONFIG.TAGS.filter(t => info.tags.includes(t.id));
+    selectedTags.forEach(tag => {
+      if (tag.effectType === 'stat_boost') {
+        ['singing','dancing','appearance','entertainment'].forEach(k => {
+          stats[k] = Math.min(CONFIG.MAX_STAT, stats[k] + 3);
+        });
+      }
+    });
+
+    this.data = {
+      character: {
+        name: info.name,
+        gender: info.gender,
+        talent: info.talent,
+        tags: info.tags,
+        stats,
+        stress: 0,
+        health: 100,
+        fans: 0,
+        money: 1000,
+        stage: 'trainee',
+        day: 1,
+        log: [],
+        // 专辑/歌曲数据
+        songs: [],           // 创作的歌曲列表
+        albums: [],          // 已发布的专辑/单曲
+        chartRank: null,     // 当前榜单排名
+        chartWeek: 0         // 当前榜单周数
+      }
+    };
+    this.save();
+    return this.data;
+  },
+
+  /** 手动存档 */
+  save() {
+    if (!this.data) return false;
+    try {
+      localStorage.setItem(CONFIG.SAVE_KEY, JSON.stringify(this.data));
+      return true;
+    } catch (e) {
+      console.warn('存档失败:', e);
+      UI.showToast('存档失败！请检查浏览器存储空间', 'error');
+      return false;
+    }
+  },
+
+  /** 自动存档（静默，不弹 Toast） */
+  autoSave() {
+    if (!this.data) return;
+    try {
+      localStorage.setItem(CONFIG.SAVE_KEY, JSON.stringify(this.data));
+    } catch (e) { /* 静默失败 */ }
+  },
+
+  /** 读档 */
+  load() {
+    try {
+      const saved = localStorage.getItem(CONFIG.SAVE_KEY);
+      if (saved) {
+        this.data = JSON.parse(saved);
+        // 兼容旧存档：确保新字段存在
+        if (!this.data.character.songs) this.data.character.songs = [];
+        if (!this.data.character.albums) this.data.character.albums = [];
+        if (this.data.character.chartRank === undefined) this.data.character.chartRank = null;
+        if (this.data.character.chartWeek === undefined) this.data.character.chartWeek = 0;
+        return true;
+      }
+    } catch (e) { console.warn('读档失败:', e); }
+    return false;
+  },
+
+  hasSave() { return localStorage.getItem(CONFIG.SAVE_KEY) !== null; },
+
+  reset() {
+    localStorage.removeItem(CONFIG.SAVE_KEY);
+    this.data = null;
+  },
+
+  getCurrentStage() {
+    if (!this.data) return CONFIG.STAGES[0];
+    return CONFIG.STAGES.find(s => s.id === this.data.character.stage) || CONFIG.STAGES[0];
+  },
+
+  /** 获取当前阶段可用活动 */
+  getAvailableActivities() {
+    const stage = this.data.character.stage;
+    const stageIdx = CONFIG.STAGES.findIndex(s => s.id === stage);
+    const activities = Object.entries(CONFIG.ACTIVITIES).map(([id, a]) => ({ id, ...a }));
+    Object.entries(CONFIG.ADVANCED_ACTIVITIES).forEach(([id, a]) => {
+      const unlockStageIdx = CONFIG.STAGES.findIndex(s => s.id === a.unlockStage);
+      if (stageIdx >= unlockStageIdx) {
+        activities.push({ id, ...a });
+      }
+    });
+    return activities;
+  },
+
+  /** 计算综合人气排名 */
+  calculateRank() {
+    const chara = this.data.character;
+    const totalStats = chara.stats.singing + chara.stats.dancing + chara.stats.appearance + chara.stats.entertainment;
+    const stageScore = CONFIG.STAGES.findIndex(s => s.id === chara.stage) * 5000;
+    // 玩家总分
+    const playerScore = chara.fans + totalStats * 50 + stageScore;
+
+    // 生成 NPC 分数
+    const npcScores = CONFIG.NPC_NAMES.map((name, i) => {
+      const baseFans = 200 + Math.floor(Math.random() * 50000);
+      const npcStage = Math.floor(Math.random() * CONFIG.STAGES.length);
+      const stageBonus = npcStage * 5000;
+      return { name, score: baseFans + stageBonus, fans: baseFans, stage: npcStage };
+    });
+
+    // 合并排序
+    const all = [
+      { name: chara.name, score: playerScore, fans: chara.fans, stage: CONFIG.STAGES.findIndex(s => s.id === chara.stage), isPlayer: true },
+      ...npcScores
+    ];
+    all.sort((a, b) => b.score - a.score);
+
+    const playerRank = all.findIndex(e => e.isPlayer) + 1;
+    return { rank: playerRank, total: all.length, list: all };
+  }
+};
+
+// ============================================================
+// 3. UI 渲染工具
+// ============================================================
+const UI = {
+  /** Toast 通知 */
+  showToast(msg, type = 'info') {
+    let toast = document.getElementById('toast');
+    if (!toast) {
+      toast = document.createElement('div');
+      toast.id = 'toast';
+      toast.className = 'toast';
+      document.body.appendChild(toast);
+    }
+    toast.textContent = msg;
+    toast.className = `toast ${type}`;
+    void toast.offsetWidth;
+    toast.classList.add('show');
+    clearTimeout(toast._hideTimer);
+    toast._hideTimer = setTimeout(() => toast.classList.remove('show'), 2500);
+  },
+
+  /** 浮动数字动画 */
+  showFloatNumber(statKey, value) {
+    if (value === 0) return;
+    const labels = {
+      singing: '唱功', dancing: '舞蹈', appearance: '外貌', entertainment: '艺能',
+      stress: '压力', health: '健康', fans: '粉丝', money: '金钱'
+    };
+    const label = labels[statKey] || statKey;
+    const sign = value > 0 ? '+' : '';
+    const el = document.createElement('div');
+    el.className = `float-number ${value > 0 ? 'positive' : 'negative'}`;
+    el.textContent = `${label} ${sign}${value}`;
+    const isMobile = window.innerWidth < 480;
+    el.style.left = isMobile ? (20 + Math.random() * 50) + '%' : (20 + Math.random() * 60) + '%';
+    el.style.top = isMobile ? (25 + Math.random() * 30) + '%' : (30 + Math.random() * 40) + '%';
+    document.body.appendChild(el);
+    setTimeout(() => el.remove(), 1000);
+  },
+
+  /** 渲染顶部信息栏 */
+  renderHeader() {
+    const chara = GameState.data.character;
+    const stage = CONFIG.STAGES.find(s => s.id === chara.stage);
+    const container = document.getElementById('header-info');
+    const stressTag = chara.stress < 40 ? 'green' : chara.stress < 70 ? 'yellow' : 'red';
+    const healthTag = chara.health > 70 ? 'green' : chara.health > 40 ? 'yellow' : 'red';
+    container.innerHTML = `
+      <div class="flex flex-wrap items-center gap-x-5 gap-y-2">
+        <div class="flex items-center gap-2">
+          <span class="text-xl">${chara.gender === '男' ? '👤' : '👩'}</span>
+          <span class="font-bold text-lg">${chara.name}</span>
+        </div>
+        <span class="text-sm text-white/60">${stage ? stage.name : '练习生'}</span>
+        <span class="text-sm text-white/40">📅 Day ${chara.day}</span>
+        <div class="flex gap-2">
+          <span class="status-tag ${stressTag}">💢 ${chara.stress}</span>
+          <span class="status-tag ${healthTag}">❤️ ${chara.health}</span>
+        </div>
+      </div>
+    `;
+  },
+
+  /** 渲染四维属性 + 数值面板 */
+  renderStats() {
+    const chara = GameState.data.character;
+    const container = document.getElementById('stats-panel');
+    if (!container) return;
+    const stats = [
+      { key: 'singing',       label: '🎤 唱功',    color: '#4ade80' },
+      { key: 'dancing',       label: '💃 舞蹈',    color: '#60a5fa' },
+      { key: 'appearance',    label: '✨ 外貌',    color: '#f472b6' },
+      { key: 'entertainment', label: '🎭 艺能',    color: '#fbbf24' }
+    ];
+    const values = [
+      { key: 'fans',   label: '👥 粉丝',  value: chara.fans,    format: v => UI.formatNum(v) },
+      { key: 'money',  label: '💰 金钱',  value: chara.money,   format: v => UI.formatNum(v) }
+    ];
+
+    container.innerHTML = `
+      <div class="glass-card p-4 mb-3">
+        <h4 class="text-sm font-medium text-white/60 mb-3">📊 能力属性</h4>
+        <div class="space-y-3">
+          ${stats.map(s => `
+            <div>
+              <div class="flex justify-between text-sm mb-1">
+                <span>${s.label}</span>
+                <span class="font-bold" id="stat-val-${s.key}">${chara.stats[s.key]}</span>
+              </div>
+              <div class="stat-bar-bg">
+                <div class="stat-bar-fill" id="stat-bar-${s.key}"
+                     style="width:${chara.stats[s.key]}%; background:${s.color};"></div>
+              </div>
+            </div>
+          `).join('')}
+        </div>
+      </div>
+      <div class="glass-card p-4 mb-3">
+        <h4 class="text-sm font-medium text-white/60 mb-3">📈 经营状况</h4>
+        <div class="grid grid-cols-2 gap-3">
+          ${values.map(v => `
+            <div class="bg-white/5 rounded-xl p-3 text-center">
+              <div class="text-xs text-white/40">${v.label}</div>
+              <div class="text-xl font-bold mt-1" id="stat-val-${v.key}">${v.format(v.value)}</div>
+            </div>
+          `).join('')}
+          <div class="bg-white/5 rounded-xl p-3 text-center">
+            <div class="text-xs text-white/40">💢 压力</div>
+            <div class="text-xl font-bold mt-1" id="stat-val-stress"
+                 style="color:${chara.stress < 40 ? '#4ade80' : chara.stress < 70 ? '#facc15' : '#f87171'}">
+              ${chara.stress}
+            </div>
+          </div>
+          <div class="bg-white/5 rounded-xl p-3 text-center">
+            <div class="text-xs text-white/40">❤️ 健康</div>
+            <div class="text-xl font-bold mt-1" id="stat-val-health"
+                 style="color:${chara.health > 70 ? '#4ade80' : chara.health > 40 ? '#facc15' : '#f87171'}">
+              ${chara.health}
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="glass-card p-4">
+        <h4 class="text-sm font-medium text-white/60 mb-2">🏆 成长阶段</h4>
+        <div class="flex items-center gap-2 flex-wrap">
+          ${CONFIG.STAGES.map((s, i) => {
+            const currentIdx = CONFIG.STAGES.findIndex(st => st.id === chara.stage);
+            const isUnlocked = i <= currentIdx;
+            const isCurrent = i === currentIdx;
+            return `<span class="text-sm ${isCurrent ? 'text-yellow-400 font-bold' : isUnlocked ? 'text-white/60' : 'text-white/20'}">
+              ${isUnlocked ? (isCurrent ? `👉 ${s.name}` : s.name) : '🔒'}
+              ${i < CONFIG.STAGES.length - 1 ? ' → ' : ''}
+            </span>`;
+          }).join('')}
+        </div>
+        ${(() => {
+          const currentIdx = CONFIG.STAGES.findIndex(st => st.id === chara.stage);
+          if (currentIdx < CONFIG.STAGES.length - 1) {
+            const next = CONFIG.STAGES[currentIdx + 1];
+            const minStat = Math.min(chara.stats.singing, chara.stats.dancing, chara.stats.appearance, chara.stats.entertainment);
+            return `<div class="text-xs text-white/40 mt-2">
+              下一阶段：${next.name} · 需要四维≥${next.statReq} · 粉丝≥${UI.formatNum(next.fanReq)}
+              <span class="text-white/60">（当前最低四维: ${minStat} · 粉丝: ${UI.formatNum(chara.fans)}）</span>
+            </div>`;
+          }
+          return '<div class="text-xs text-green-400 mt-2">🎉 已达最高阶段！你是顶级偶像！</div>';
+        })()}
+      </div>
+    `;
+  },
+
+  /** 渲染事件日志 */
+  renderLog() {
+    const chara = GameState.data.character;
+    const container = document.getElementById('log-panel');
+    if (!container) return;
+    const recent = chara.log.slice(-10).reverse();
+    container.innerHTML = `
+      <div class="glass-card p-4" style="max-height:280px; overflow-y:auto;">
+        <h4 class="text-sm font-medium text-white/60 mb-3">📋 事件日志</h4>
+        ${recent.length === 0
+          ? '<p class="text-xs text-white/30 text-center py-4">还没有事件记录，开始你的日程吧！</p>'
+          : `<div class="space-y-2">
+              ${recent.map(entry => `
+                <div class="text-xs bg-white/5 rounded-lg p-2.5" style="animation:fadeIn .3s ease-out;">
+                  <span class="text-white/40">Day ${entry.day}</span>
+                  ${entry.event ? ` <span class="text-purple-400 font-medium">${entry.event}</span>` : ''}
+                  ${entry.activities ? ` <span class="text-white/50">📅 ${entry.activities.join(' · ')}</span>` : ''}
+                  <span class="text-white/60"> ${entry.summary}</span>
+                </div>
+              `).join('')}
+            </div>`
+        }
+      </div>
+    `;
+  },
+
+  /** 格式化数字 */
+  formatNum(n) {
+    if (n >= 10000) return (n / 10000).toFixed(1) + '万';
+    if (n >= 1000) return (n / 1000).toFixed(1) + 'k';
+    return n.toString();
+  }
+};
+
+// ============================================================
+// 4. 角色创建模块
+// ============================================================
+const CharacterCreator = {
+  selectedTags: [],
+
+  render() {
+    const container = document.getElementById('screen-create');
+    container.innerHTML = `
+      <div class="min-h-screen flex items-center justify-center p-4">
+        <div class="glass-card w-full max-w-lg p-8" style="animation:fadeIn .5s ease-out;">
+          <h2 class="text-2xl font-bold text-center mb-2">🌟 定制你的偶像</h2>
+          <p class="text-center text-white/50 text-sm mb-8">打造属于你的专属偶像</p>
+
+          <div class="mb-5">
+            <label class="block text-sm font-medium text-white/70 mb-2">🎭 艺名</label>
+            <input id="input-name" type="text" maxlength="10" placeholder="输入你的偶像艺名..."
+              class="w-full px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white
+                     placeholder-white/30 outline-none focus:border-purple-500/60 transition-colors">
+          </div>
+
+          <div class="mb-5">
+            <label class="block text-sm font-medium text-white/70 mb-2">🚻 性别</label>
+            <div class="flex gap-3">
+              <label class="flex-1 cursor-pointer">
+                <input type="radio" name="gender" value="男" checked class="hidden">
+                <div class="gender-option text-center py-3 rounded-xl bg-white/5 border border-white/10
+                            hover:border-pink-500/40 transition-all font-medium">男</div>
+              </label>
+              <label class="flex-1 cursor-pointer">
+                <input type="radio" name="gender" value="女" class="hidden">
+                <div class="gender-option text-center py-3 rounded-xl bg-white/5 border border-white/10
+                            hover:border-pink-500/40 transition-all font-medium">女</div>
+              </label>
+            </div>
+          </div>
+
+          <div class="mb-5">
+            <label class="block text-sm font-medium text-white/70 mb-3">🎯 初始天赋（选一项）</label>
+            <div class="grid grid-cols-2 gap-3" id="talent-grid">
+              ${CONFIG.TALENTS.map(t => `
+                <div class="talent-card" data-talent="${t.id}">
+                  <div class="text-2xl mb-1">${t.name.split(' ')[0]}</div>
+                  <div class="font-medium text-sm">${t.name}</div>
+                  <div class="text-xs text-white/50 mt-1">${t.desc}</div>
+                </div>
+              `).join('')}
+            </div>
+          </div>
+
+          <div class="mb-6">
+            <label class="block text-sm font-medium text-white/70 mb-2">🏷️ 人设标签（选2项）</label>
+            <div class="flex flex-wrap gap-2" id="tags-container">
+              ${CONFIG.TAGS.map(t => `
+                <button class="tag-btn" data-tag="${t.id}">${t.name}</button>
+              `).join('')}
+            </div>
+            <p class="text-xs text-white/40 mt-2" id="tag-hint">选择 2 个标签来定义你的偶像人设</p>
+          </div>
+
+          <button id="btn-create" class="btn-gradient w-full text-lg py-3">✨ 开始偶像之旅</button>
+        </div>
+      </div>
+    `;
+    this.bindEvents();
+  },
+
+  bindEvents() {
+    const talentCards = document.querySelectorAll('.talent-card');
+    talentCards.forEach(card => {
+      card.addEventListener('click', () => {
+        talentCards.forEach(c => c.classList.remove('selected'));
+        card.classList.add('selected');
+      });
+    });
+    if (talentCards.length > 0) talentCards[0].classList.add('selected');
+
+    document.querySelectorAll('.gender-option').forEach(el => {
+      el.addEventListener('click', () => {
+        document.querySelectorAll('.gender-option').forEach(e => e.classList.remove('selected'));
+        el.classList.add('selected');
+      });
+    });
+    document.querySelectorAll('.gender-option')[0]?.classList.add('selected');
+
+    this.selectedTags = [];
+    const tagBtns = document.querySelectorAll('.tag-btn');
+    tagBtns.forEach(btn => {
+      btn.addEventListener('click', () => {
+        const tagId = btn.dataset.tag;
+        if (btn.classList.contains('selected')) {
+          btn.classList.remove('selected');
+          this.selectedTags = this.selectedTags.filter(t => t !== tagId);
+        } else {
+          if (this.selectedTags.length >= 2) {
+            UI.showToast('最多选择 2 个人设标签', 'warning');
+            return;
+          }
+          btn.classList.add('selected');
+          this.selectedTags.push(tagId);
+        }
+        document.getElementById('tag-hint').textContent =
+          this.selectedTags.length === 0 ? '选择 2 个标签来定义你的偶像人设' :
+          this.selectedTags.length === 1 ? '再选 1 个标签吧' :
+          '已选 2 个标签 ✓';
+      });
+    });
+
+    document.getElementById('btn-create').addEventListener('click', () => this.submit());
+  },
+
+  submit() {
+    const name = document.getElementById('input-name').value.trim();
+    if (!name) { UI.showToast('请输入你的艺名 ✨', 'warning'); return; }
+    const gender = document.querySelector('input[name="gender"]:checked')?.value || '男';
+    const selectedTalent = document.querySelector('.talent-card.selected');
+    if (!selectedTalent) { UI.showToast('请选择一项初始天赋 🎯', 'warning'); return; }
+    const talent = selectedTalent.dataset.talent;
+    if (this.selectedTags.length < 2) { UI.showToast('请选择 2 个人设标签 🏷️', 'warning'); return; }
+
+    GameState.createCharacter({ name, gender, talent, tags: this.selectedTags });
+    UI.showToast(`欢迎来到偶像世界，${name}！🌟`, 'success');
+    App.switchScreen('game');
+  }
+};
+
+// ============================================================
+// 5. 随机事件系统（含分支选项事件）
+// ============================================================
+const EventSystem = {
+  /**
+   * 检测并触发随机事件
+   * 先判定是否触发普通事件；然后额外判定是否触发分支事件
+   */
+  async checkRandomEvent() {
+    if (Math.random() > CONFIG.EVENT_CHANCE) return false;
+
+    // 先判定是否触发分支事件
+    if (Math.random() < CONFIG.BRANCH_EVENT_CHANCE) {
+      const triggered = await this.tryBranchEvent();
+      if (triggered) return true;
+    }
+
+    // 否则触发普通事件
+    const roll = Math.random();
+    let pool;
+    if (roll < CONFIG.EVENT_GOOD_WEIGHT) pool = CONFIG.EVENTS.good;
+    else if (roll < CONFIG.EVENT_GOOD_WEIGHT + CONFIG.EVENT_BAD_WEIGHT) pool = CONFIG.EVENTS.bad;
+    else pool = CONFIG.EVENTS.neutral;
+
+    const event = pool[Math.floor(Math.random() * pool.length)];
+    if (!event) return false;
+
+    this.applyEventEffects(event.effects);
+    GameState.autoSave();
+    await this.showSimpleEvent(event);
+    return true;
+  },
+
+  /** 尝试触发分支事件 */
+  async tryBranchEvent() {
+    const pool = CONFIG.BRANCH_EVENTS;
+    const event = pool[Math.floor(Math.random() * pool.length)];
+    if (!event) return false;
+
+    await this.showBranchEvent(event);
+    return true;
+  },
+
+  /** 应用事件效果到角色 */
+  applyEventEffects(effects) {
+    if (!effects) return;
+    const chara = GameState.data.character;
+    Object.entries(effects).forEach(([key, range]) => {
+      const val = range[0] + Math.floor(Math.random() * (range[1] - range[0] + 1));
+      if (key === 'stress') {
+        chara.stress = Math.min(CONFIG.MAX_STRESS, Math.max(0, chara.stress + val));
+      } else if (key === 'health') {
+        chara.health = Math.min(CONFIG.MAX_HEALTH, Math.max(0, chara.health + val));
+      } else if (key === 'fans') {
+        chara.fans = Math.max(0, chara.fans + val);
+      } else if (key === 'money') {
+        chara.money = Math.max(0, chara.money + val);
+      } else {
+        if (chara.stats[key] !== undefined) {
+          chara.stats[key] = Math.min(CONFIG.MAX_STAT, Math.max(CONFIG.MIN_STAT, chara.stats[key] + val));
+        }
+      }
+      UI.showFloatNumber(key, val);
+    });
+
+    UI.renderStats();
+    UI.renderLog();
+  },
+
+  /** 普通事件弹窗（只有确认按钮） */
+  showSimpleEvent(event) {
+    return new Promise(resolve => {
+      const overlay = document.getElementById('event-modal-overlay');
+      const titleEl = document.getElementById('event-modal-title');
+      const iconEl = document.getElementById('event-modal-icon');
+      const textEl = document.getElementById('event-modal-text');
+      const bodyEl = document.getElementById('event-modal-body');
+
+      iconEl.textContent = event.title.charAt(0);
+      titleEl.textContent = event.title;
+      textEl.textContent = event.text;
+
+      // 显示效果预览
+      let effectsHtml = '';
+      if (event.effects) {
+        const parts = Object.entries(event.effects).map(([key, range]) => {
+          const labels = { singing: '唱功', dancing: '舞蹈', appearance: '外貌', entertainment: '艺能',
+                          stress: '压力', health: '健康', fans: '粉丝数', money: '金钱' };
+          const label = labels[key] || key;
+          const sign = range[0] >= 0 ? '+' : '';
+          return `${label} ${sign}${range[0]}~${range[1]}`;
+        });
+        effectsHtml = `<p class="text-sm text-white/50 mb-4">效果：${parts.join(' · ')}</p>`;
+      }
+
+      bodyEl.innerHTML = effectsHtml + `<button class="btn-primary" id="event-confirm-btn">确 认</button>`;
+
+      const btn = document.getElementById('event-confirm-btn');
+      btn.addEventListener('click', () => {
+        overlay.classList.remove('show');
+        // 记录日志
+        const chara = GameState.data.character;
+        chara.log.push({ day: chara.day, event: event.title, summary: event.text });
+        resolve();
+      });
+
+      overlay.classList.add('show');
+    });
+  },
+
+  /** 分支事件弹窗（多个选项） */
+  showBranchEvent(event) {
+    return new Promise(resolve => {
+      const overlay = document.getElementById('event-modal-overlay');
+      const titleEl = document.getElementById('event-modal-title');
+      const iconEl = document.getElementById('event-modal-icon');
+      const textEl = document.getElementById('event-modal-text');
+      const bodyEl = document.getElementById('event-modal-body');
+
+      iconEl.textContent = event.title.charAt(0);
+      titleEl.textContent = event.title;
+      textEl.textContent = event.text;
+
+      // 渲染选项按钮
+      bodyEl.innerHTML = event.choices.map((choice, idx) => `
+        <button class="choice-btn" data-choice="${idx}">
+          ${choice.label}
+          <span class="choice-detail">${choice.detail}</span>
+        </button>
+      `).join('');
+
+      bodyEl.querySelectorAll('.choice-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const idx = parseInt(btn.dataset.choice);
+          const chosen = event.choices[idx];
+          if (!chosen) return;
+
+          // 应用选择的效果
+          this.applyEventEffects(chosen.effects);
+
+          // 记录日志（包含选择结果）
+          const chara = GameState.data.character;
+          chara.log.push({
+            day: chara.day,
+            event: event.title,
+            summary: chosen.result || chosen.label
+          });
+
+          overlay.classList.remove('show');
+          resolve();
+        });
+      });
+
+      overlay.classList.add('show');
+    });
+  }
+};
+
+// ============================================================
+// 6. 成长晋升系统
+// ============================================================
+const GrowthSystem = {
+  /** 检查是否满足晋升条件 */
+  checkStage() {
+    const chara = GameState.data.character;
+    const currentIdx = CONFIG.STAGES.findIndex(s => s.id === chara.stage);
+    if (currentIdx < 0 || currentIdx >= CONFIG.STAGES.length - 1) return false;
+
+    const nextStage = CONFIG.STAGES[currentIdx + 1];
+    if (!nextStage) return false;
+
+    const minStat = Math.min(chara.stats.singing, chara.stats.dancing, chara.stats.appearance, chara.stats.entertainment);
+
+    let canAdvance = true;
+    if (nextStage.nextReq) {
+      if (nextStage.nextReq.stage) {
+        const reqStageIdx = CONFIG.STAGES.findIndex(s => s.id === nextStage.nextReq.stage);
+        if (currentIdx < reqStageIdx) canAdvance = false;
+      }
+      if (nextStage.nextReq.fans && chara.fans < nextStage.nextReq.fans) canAdvance = false;
+    }
+    if (minStat < nextStage.statReq) canAdvance = false;
+    if (chara.fans < nextStage.fanReq) canAdvance = false;
+    if (!canAdvance) return false;
+
+    // 晋升！
+    const oldStage = chara.stage;
+    chara.stage = nextStage.id;
+
+    const rewards = {
+      debut:     { money: 5000,  fans: 200,  stress: -10 },
+      single:    { money: 10000, fans: 500,  stress: -10 },
+      chart:     { money: 20000, fans: 1000, stress: -15 },
+      celebrity: { money: 50000, fans: 5000, stress: -20 }
+    };
+    const reward = rewards[nextStage.id];
+    if (reward) {
+      if (reward.money)  chara.money  = Math.max(0, chara.money + reward.money);
+      if (reward.fans)   chara.fans   = Math.max(0, chara.fans + reward.fans);
+      if (reward.stress) chara.stress = Math.max(0, chara.stress + reward.stress);
+    }
+
+    chara.log.push({
+      day: chara.day,
+      event: `🎉 晋升：${nextStage.name}`,
+      summary: `从 ${CONFIG.STAGES[currentIdx].name} 晋升至 ${nextStage.name}！`
+    });
+
+    GameState.autoSave();
+    this.showStageModal(nextStage, reward);
+    UI.renderStats();
+    UI.renderLog();
+    UI.renderHeader();
+    return true;
+  },
+
+  /** 晋升弹窗 */
+  showStageModal(stage, reward) {
+    const overlay = document.getElementById('event-modal-overlay');
+    document.getElementById('event-modal-icon').textContent = '🎉';
+    document.getElementById('event-modal-title').textContent = `晋升！${stage.name}`;
+    document.getElementById('event-modal-text').textContent = stage.desc;
+
+    let effectsHtml = '';
+    if (reward) {
+      const parts = [];
+      if (reward.money)  parts.push(`💰 +${reward.money} 金钱`);
+      if (reward.fans)   parts.push(`👥 +${reward.fans} 粉丝`);
+      if (reward.stress) parts.push(`💢 -${Math.abs(reward.stress)} 压力`);
+      effectsHtml = `<p class="text-sm text-green-400 mt-2">晋升奖励：${parts.join(' · ')}</p>`;
+    }
+
+    document.getElementById('event-modal-body').innerHTML = `
+      <p class="text-sm text-white/60 mt-2">解锁新活动和新机遇！继续努力成为顶级偶像吧！</p>
+      ${effectsHtml}
+      <button class="btn-primary mt-4" id="stage-confirm-btn">🚀 继续前进</button>
+    `;
+
+    const btn = document.getElementById('stage-confirm-btn');
+    const newBtn = btn.cloneNode(true);
+    btn.parentNode.replaceChild(newBtn, btn);
+    newBtn.addEventListener('click', () => overlay.classList.remove('show'));
+    overlay.classList.add('show');
+  }
+};
+
+// ============================================================
+// 7. 每日日程系统
+// ============================================================
+const Schedule = {
+  selections: [null, null, null, null],
+  slots: ['🌅 上午', '☀️ 下午', '🌆 晚上', '🌙 深夜'],
+  isExecuting: false,
+
+  render() {
+    const activities = GameState.getAvailableActivities();
+    const chara = GameState.data.character;
+    const container = document.getElementById('schedule-panel');
+    const optionsHtml = activities.map(a =>
+      `<option value="${a.id}">${a.name}</option>`
+    ).join('');
+    container.innerHTML = `
+      <div class="glass-card p-5">
+        <h3 class="text-lg font-bold mb-4 flex items-center gap-2">📅 第 ${chara.day} 天 · 今日日程</h3>
+        <div class="space-y-3" id="schedule-slots">
+          ${this.slots.map((slotName, i) => `
+            <div>
+              <label class="text-xs text-white/50 font-medium block mb-1">${slotName}</label>
+              <select class="schedule-select" data-slot="${i}">
+                <option value="">— 选择活动 —</option>
+                ${optionsHtml}
+              </select>
+            </div>
+          `).join('')}
+        </div>
+        <button id="btn-execute" class="btn-gradient w-full mt-4 py-3 text-base">⚡ 执行日程</button>
+      </div>
+      <div class="glass-card p-4 mt-3" id="execution-log" style="display:none;">
+        <h4 class="text-sm font-medium text-white/60 mb-2">📋 执行记录</h4>
+        <div class="space-y-2 text-sm" id="log-entries"></div>
+      </div>
+    `;
+    this.bindEvents();
+    if (this.selections.some(s => s !== null)) this.restoreSelections();
+  },
+
+  bindEvents() {
+    document.querySelectorAll('.schedule-select').forEach(sel => {
+      sel.addEventListener('change', (e) => {
+        const slot = parseInt(e.target.dataset.slot);
+        this.selections[slot] = e.target.value || null;
+      });
+    });
+    document.getElementById('btn-execute').addEventListener('click', () => this.execute());
+  },
+
+  restoreSelections() {
+    document.querySelectorAll('.schedule-select').forEach(sel => {
+      const slot = parseInt(sel.dataset.slot);
+      if (this.selections[slot]) sel.value = this.selections[slot];
+    });
+  },
+
+  /** 执行日程 —— 按顺序执行4个活动 */
+  async execute() {
+    if (this.isExecuting) return;
+    const chara = GameState.data.character;
+    const selected = this.selections.map((s, i) => ({ id: s, slot: i }));
+    const empty = selected.filter(s => !s.id);
+    if (empty.length > 0) {
+      UI.showToast(`还有 ${empty.length} 个时段未选择活动`, 'warning');
+      return;
+    }
+
+    this.isExecuting = true;
+    document.getElementById('btn-execute').disabled = true;
+
+    const logPanel = document.getElementById('execution-log');
+    logPanel.style.display = 'block';
+    const logEntries = document.getElementById('log-entries');
+    logEntries.innerHTML = '';
+
+    const allActivities = GameState.getAvailableActivities();
+    const findActivity = id => allActivities.find(a => a.id === id);
+    const tags = CONFIG.TAGS.filter(t => chara.tags.includes(t.id));
+
+    // 收集本轮所有活动名用于日志
+    const activityNames = [];
+
+    for (const sel of selected) {
+      const act = findActivity(sel.id);
+      if (!act) continue;
+      activityNames.push(act.name);
+
+      const entry = document.createElement('div');
+      entry.className = 'glass-card p-3 flex items-center gap-3';
+      entry.style.animation = 'fadeIn .3s ease-out';
+      entry.innerHTML = `
+        <span class="text-lg">${act.name.split(' ')[0]}</span>
+        <div class="flex-1">
+          <div class="font-medium text-sm">${act.name}</div>
+          <div class="text-xs text-white/40">${act.desc}</div>
+        </div>
+        <div class="text-right text-xs" id="effect-${sel.slot}">执行中...</div>
+      `;
+      logEntries.appendChild(entry);
+
+      // 特殊处理：闭关写歌 → 创作歌曲
+      if (act.id === 'write_song') {
+        this.composeSong(chara);
+      }
+
+      // 应用效果
+      const effects = {};
+      if (act.effects) {
+        Object.entries(act.effects).forEach(([key, range]) => {
+          let val = range[0] + Math.floor(Math.random() * (range[1] - range[0] + 1));
+          tags.forEach(tag => {
+            switch (tag.effectType) {
+              case 'train_boost':
+                if (act.type === 'train' && ['singing','dancing','appearance','entertainment'].includes(key)) val = Math.round(val * 1.1);
+                break;
+              case 'fan_boost':    if (key === 'fans' && val > 0) val = Math.round(val * 1.15); break;
+              case 'money_boost':  if (key === 'money' && val > 0) val = Math.round(val * 1.15); break;
+              case 'rest_boost':   if (act.type === 'rest' && val < 0) val = Math.round(val * 1.2); break;
+              case 'stress_reduce': if (key === 'stress' && val > 0) val = Math.round(val * 0.85); break;
+              case 'social_boost': if (act.type === 'social' && val > 0) val = Math.round(val * 1.15); break;
+            }
+          });
+
+          if (key === 'stress') {
+            if (val < 0) chara.stress = Math.max(0, chara.stress + val);
+            else chara.stress = Math.min(CONFIG.MAX_STRESS, chara.stress + val);
+          } else if (key === 'health') {
+            chara.health = Math.min(CONFIG.MAX_HEALTH, Math.max(0, chara.health + val));
+          } else if (key === 'fans') {
+            chara.fans = Math.max(0, chara.fans + val);
+          } else if (key === 'money') {
+            chara.money = Math.max(0, chara.money + val);
+          } else {
+            if (chara.stats[key] !== undefined) {
+              chara.stats[key] = Math.min(CONFIG.MAX_STAT, Math.max(CONFIG.MIN_STAT, chara.stats[key] + val));
+            }
+          }
+          effects[key] = val;
+        });
+      }
+
+      const effectEl = document.getElementById(`effect-${sel.slot}`);
+      if (effectEl) {
+        const parts = Object.entries(effects).map(([key, val]) => {
+          const label = { singing: '唱功', dancing: '舞蹈', appearance: '外貌', entertainment: '艺能',
+                          stress: '压力', health: '健康', fans: '粉丝', money: '金钱' }[key] || key;
+          const sign = val > 0 ? '+' : '';
+          const color = val > 0 ? (key === 'stress' ? 'text-red-400' : 'text-green-400') :
+                        val < 0 ? (key === 'stress' ? 'text-green-400' : 'text-red-400') : '';
+          return `<span class="${color}">${label} ${sign}${val}</span>`;
+        });
+        effectEl.innerHTML = parts.join(' · ');
+      }
+
+      Object.entries(effects).forEach(([key, val]) => UI.showFloatNumber(key, val));
+      UI.renderStats();
+      await new Promise(r => setTimeout(r, 600));
+    }
+
+    // 进入新的一天
+    chara.day++;
+
+    // 记录日程日志
+    chara.log.push({
+      day: chara.day - 1,
+      activities: activityNames,
+      summary: '完成日程'
+    });
+
+    // 自动存档
+    GameState.autoSave();
+
+    // 清空选择
+    this.selections = [null, null, null, null];
+
+    // 触发随机事件
+    await new Promise(r => setTimeout(r, 300));
+    const eventTriggered = await EventSystem.checkRandomEvent();
+
+    // 检查晋升
+    await new Promise(r => setTimeout(r, 200));
+    const stageUp = GrowthSystem.checkStage();
+
+    // 游戏结束检查
+    if (chara.health <= 0) {
+      UI.showToast('💔 因健康问题不得不退出演艺圈...', 'error');
+      setTimeout(() => App.showGameOver('因过度劳累导致健康崩溃'), 1000);
+      this.isExecuting = false;
+      document.getElementById('btn-execute').disabled = false;
+      return;
+    }
+    if (chara.stress >= 100) {
+      UI.showToast('😰 压力过大精神崩溃...', 'error');
+      setTimeout(() => App.showGameOver('因压力过大无法继续演艺事业'), 1000);
+      this.isExecuting = false;
+      document.getElementById('btn-execute').disabled = false;
+      return;
+    }
+
+    // 刷新界面
+    this.render();
+    UI.renderStats();
+    UI.renderLog();
+    UI.renderHeader();
+
+    this.isExecuting = false;
+    document.getElementById('btn-execute').disabled = false;
+
+    if (!eventTriggered && !stageUp) {
+      UI.showToast(`第 ${chara.day - 1} 天结束 🌟`, 'info');
+    }
+  },
+
+  /** 闭关写歌时创作一首新歌 */
+  composeSong(chara) {
+    // 歌曲质量基于艺能 + 唱功
+    const quality = Math.floor(50 + (chara.stats.entertainment + chara.stats.singing) / 4);
+    const styles = ['抒情', '舞曲', 'R&B', '流行', '民谣', '电子', '嘻哈'];
+    const style = styles[Math.floor(Math.random() * styles.length)];
+    const songTitles = [
+      '星光', '追梦', '闪耀', '初见', '不灭的火',
+      '心跳', '轨迹', '晨曦', '夜航', '无尽夏'
+    ];
+    const title = songTitles[Math.floor(Math.random() * songTitles.length)];
+
+    const song = {
+      title: `《${title}》`,
+      style,
+      quality: Math.min(100, quality),
+      createdAt: chara.day,
+      released: false
+    };
+    chara.songs.push(song);
+
+    UI.showToast(`🎵 创作了新歌 ${song.title}（品质: ${song.quality}）`, 'success');
+  }
+};
+
+// ============================================================
+// 8. 专辑/榜单系统
+// ============================================================
+const AlbumChartSystem = {
+  /** 渲染专辑榜单页 */
+  render() {
+    const chara = GameState.data.character;
+    const container = document.getElementById('album-content');
+
+    // 未发布的歌曲
+    const unreleased = chara.songs.filter(s => !s.released);
+    const released = chara.songs.filter(s => s.released);
+
+    let html = '';
+
+    // 已发布单曲
+    html += `<h4 class="text-md font-bold mb-2">📀 已发布作品</h4>`;
+    if (released.length === 0) {
+      html += `<p class="text-xs text-white/40 mb-4">还没有发布任何作品，先写歌再点底部"发布单曲"按钮吧！</p>`;
+    } else {
+      html += `<div class="space-y-2 mb-4">`;
+      released.forEach((song, i) => {
+        const stars = song.quality >= 80 ? '⭐⭐⭐' : song.quality >= 60 ? '⭐⭐' : '⭐';
+        html += `<div class="chart-entry">
+          <span class="text-purple-400 font-bold">💿 ${song.title}</span>
+          <span class="text-xs text-white/50">${song.style} · 品质 ${song.quality} ${stars}</span>
+        </div>`;
+      });
+      html += `</div>`;
+    }
+
+    // 未发布歌曲
+    html += `<h4 class="text-md font-bold mb-2 mt-4">✍️ 未发布作品 (${unreleased.length})</h4>`;
+    if (unreleased.length === 0) {
+      html += `<p class="text-xs text-white/40 mb-4">没有未发布的歌曲。选择「闭关写歌」来创作新歌吧！</p>`;
+    } else {
+      html += `<div class="space-y-2 mb-4">`;
+      unreleased.forEach(song => {
+        html += `<div class="chart-entry">
+          <span class="text-white/70">🎵 ${song.title}</span>
+          <span class="text-xs text-white/40">${song.style} · 品质 ${song.quality}</span>
+        </div>`;
+      });
+      html += `</div>`;
+    }
+
+    // 当前人气排名
+    html += `<h4 class="text-md font-bold mb-2 mt-4">🏆 人气排行榜</h4>`;
+    const rankData = GameState.calculateRank();
+    let rankColor = rankData.rank === 1 ? 'text-yellow-400' : rankData.rank <= 3 ? 'text-purple-400' : 'text-white/70';
+    html += `<div class="bg-white/5 rounded-xl p-4 mb-4 text-center">
+      <div class="text-xs text-white/40 mb-1">当前排名</div>
+      <div class="text-3xl font-bold ${rankColor}">#${rankData.rank} / ${rankData.total}</div>
+      <div class="text-xs text-white/40 mt-2">击败了 ${Math.round((1 - rankData.rank / rankData.total) * 100)}% 的同行</div>
+    </div>`;
+
+    // 排行榜完整列表（仅显示前10）
+    html += `<div class="space-y-2">`;
+    rankData.list.slice(0, 10).forEach((entry, i) => {
+      const rankClass = i === 0 ? 'top-1' : i === 1 ? 'top-2' : i === 2 ? 'top-3' : '';
+      const isPlayer = entry.isPlayer;
+      html += `<div class="chart-entry ${rankClass}">
+        <span class="rank-num ${rankClass ? 'text-yellow-400' : 'text-white/40'}">#${i + 1}</span>
+        <span class="flex-1 ${isPlayer ? 'text-purple-400 font-bold' : 'text-white/70'}">${isPlayer ? '⭐ ' : ''}${entry.name}</span>
+        <span class="text-xs text-white/40">👥 ${UI.formatNum(entry.fans)}</span>
+      </div>`;
+    });
+    html += `</div>`;
+
+    container.innerHTML = html;
+  },
+
+  /** 发布单曲（从未发布歌曲中选择品质最高的发布） */
+  releaseSingle() {
+    const chara = GameState.data.character;
+    const unreleased = chara.songs.filter(s => !s.released);
+    if (unreleased.length === 0) {
+      UI.showToast('没有可发布的歌曲！先去「闭关写歌」吧 🎵', 'warning');
+      return;
+    }
+
+    // 找品质最高的发布
+    const best = unreleased.reduce((a, b) => a.quality > b.quality ? a : b);
+    best.released = true;
+    chara.albums.push({ ...best, releasedAt: chara.day });
+
+    // 发布奖励：基于歌曲品质
+    const fanGain = Math.floor(best.quality * 10 + Math.random() * 500);
+    const moneyGain = Math.floor(best.quality * 50 + Math.random() * 2000);
+    chara.fans += fanGain;
+    chara.money += moneyGain;
+
+    UI.showToast(`💿 发布了单曲 ${best.title}！获得 ${fanGain} 粉丝和 ${moneyGain} 金钱！`, 'success');
+
+    // 记录日志
+    chara.log.push({
+      day: chara.day,
+      event: `💿 发布单曲 ${best.title}`,
+      summary: `品质 ${best.quality} · 获得 ${fanGain} 粉丝`
+    });
+
+    GameState.autoSave();
+    this.render();
+    UI.renderStats();
+    UI.renderLog();
+
+    // 如果达到了专辑阶段，检查晋升
+    GrowthSystem.checkStage();
+  }
+};
+
+// ============================================================
+// 9. 主控制器
+// ============================================================
+const App = {
+  currentScreen: null,
+
+  init() {
+    this.checkSaveExists();
+    // 绑定导航标签切换
+    document.querySelectorAll('.nav-tab').forEach(tab => {
+      tab.addEventListener('click', () => {
+        const target = tab.dataset.tab;
+        document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
+        tab.classList.add('active');
+        // 显示对应的内容区域
+        document.getElementById('game-tab-main').classList.toggle('hidden', target !== 'main');
+        document.getElementById('game-tab-album').classList.toggle('hidden', target !== 'album');
+        document.getElementById('game-tab-settings').classList.toggle('hidden', target !== 'settings');
+        // 切换到专辑榜单时刷新数据
+        if (target === 'album') AlbumChartSystem.render();
+        if (target === 'settings') this.updateSettingsInfo();
+      });
+    });
+  },
+
+  switchScreen(screenId) {
+    document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+    const target = document.getElementById(`screen-${screenId}`);
+    if (target) {
+      target.classList.add('active');
+      this.currentScreen = screenId;
+    }
+    if (screenId === 'game') {
+      this.renderGame();
+    }
+  },
+
+  renderGame() {
+    UI.renderHeader();
+    UI.renderStats();
+    Schedule.render();
+    UI.renderLog();
+    AlbumChartSystem.render();
+
+    const chara = GameState.data.character;
+    if (chara.health <= 0) this.showGameOver('因健康问题退出演艺圈');
+    else if (chara.stress >= 100) this.showGameOver('因压力过大无法继续');
+  },
+
+  startNewGame() {
+    if (GameState.hasSave()) {
+      if (!confirm('当前有存档，开始新游戏将覆盖原有存档，确定吗？')) return;
+    }
+    GameState.reset();
+    CharacterCreator.render();
+    this.switchScreen('create');
+  },
+
+  continueGame() {
+    if (!GameState.hasSave()) {
+      UI.showToast('没有找到存档，请开始新游戏', 'warning');
+      return;
+    }
+    if (GameState.load()) {
+      this.switchScreen('game');
+      UI.showToast('读档成功！🌟', 'success');
+    } else {
+      UI.showToast('读档失败，存档可能已损坏', 'error');
+    }
+  },
+
+  resetGame() {
+    if (!GameState.hasSave()) { UI.showToast('没有存档需要重置', 'info'); return; }
+    if (confirm('确定要重置游戏吗？所有进度将丢失！')) {
+      GameState.reset();
+      UI.showToast('游戏已重置', 'info');
+      this.checkSaveExists();
+      document.querySelector('#screen-title .continue-btn')?.classList.add('hidden');
+    }
+  },
+
+  saveGame() {
+    if (GameState.save()) UI.showToast('存档成功 💾', 'success');
+  },
+
+  loadGame() {
+    if (GameState.load()) {
+      this.renderGame();
+      UI.showToast('读档成功 📂', 'success');
+    } else {
+      UI.showToast('没有找到存档', 'warning');
+    }
+  },
+
+  /** 显示人气排名弹窗 */
+  showRanking() {
+    const overlay = document.getElementById('event-modal-overlay');
+    const titleEl = document.getElementById('event-modal-title');
+    const iconEl = document.getElementById('event-modal-icon');
+    const textEl = document.getElementById('event-modal-text');
+    const bodyEl = document.getElementById('event-modal-body');
+
+    const rankData = GameState.calculateRank();
+    iconEl.textContent = '🏆';
+    titleEl.textContent = '人气排行榜';
+    textEl.textContent = '当前娱乐圈人气排名';
+
+    bodyEl.innerHTML = `
+      <div class="text-center mb-4">
+        <div class="text-3xl font-bold ${rankData.rank === 1 ? 'text-yellow-400' : rankData.rank <= 3 ? 'text-purple-400' : 'text-white/70'}">
+          #${rankData.rank} / ${rankData.total}
+        </div>
+      </div>
+      <div class="space-y-1 text-left">
+        ${rankData.list.slice(0, 10).map((entry, i) => `
+          <div class="flex items-center gap-2 text-sm py-1 ${entry.isPlayer ? 'text-purple-400 font-bold' : 'text-white/60'}">
+            <span class="w-6 text-center">${i + 1}</span>
+            <span class="flex-1">${entry.isPlayer ? '⭐ ' : ''}${entry.name}</span>
+            <span>${UI.formatNum(entry.fans)}</span>
+          </div>
+        `).join('')}
+      </div>
+      <button class="btn-primary mt-4" id="rank-close-btn">关 闭</button>
+    `;
+
+    document.getElementById('rank-close-btn').addEventListener('click', () => overlay.classList.remove('show'));
+    overlay.classList.add('show');
+  },
+
+  /** 游戏结束画面 */
+  showGameOver(reason) {
+    const chara = GameState.data.character;
+    const stage = CONFIG.STAGES.find(s => s.id === chara.stage);
+    const container = document.getElementById('gameover-content');
+    const totalFans = chara.fans;
+    const highestStage = stage ? stage.name : '练习生';
+    const score = totalFans + (CONFIG.STAGES.findIndex(s => s.id === chara.stage) * 10000);
+
+    container.innerHTML = `
+      <div class="glass-card p-8 text-center" style="animation:fadeIn .5s ease-out;">
+        <div class="text-5xl mb-4">🎬</div>
+        <h2 class="text-2xl font-bold mb-2">演艺生涯结束</h2>
+        <p class="text-white/60 mb-6">${reason}</p>
+
+        <div class="grid grid-cols-2 gap-4 mb-6 text-left">
+          <div class="bg-white/5 rounded-xl p-4">
+            <div class="text-xs text-white/40">角色</div>
+            <div class="font-bold">${chara.name}</div>
+          </div>
+          <div class="bg-white/5 rounded-xl p-4">
+            <div class="text-xs text-white/40">最高阶段</div>
+            <div class="font-bold">${highestStage}</div>
+          </div>
+          <div class="bg-white/5 rounded-xl p-4">
+            <div class="text-xs text-white/40">累计粉丝</div>
+            <div class="font-bold text-purple-400">${UI.formatNum(totalFans)}</div>
+          </div>
+          <div class="bg-white/5 rounded-xl p-4">
+            <div class="text-xs text-white/40">存活天数</div>
+            <div class="font-bold">${chara.day} 天</div>
+          </div>
+        </div>
+
+        <div class="glass-card p-4 mb-6">
+          <div class="text-sm text-white/60 mb-1">最终评分</div>
+          <div class="text-3xl font-bold gradient-text">${score.toLocaleString()}</div>
+        </div>
+
+        <button onclick="App.backToTitle()" class="btn-gradient w-full py-3">🏠 回到标题</button>
+      </div>
+    `;
+    this.switchScreen('gameover');
+  },
+
+  backToTitle() {
+    this.checkSaveExists();
+    this.switchScreen('title');
+  },
+
+  checkSaveExists() {
+    const hasSave = GameState.hasSave();
+    const continueBtn = document.querySelector('#screen-title .continue-btn');
+    if (continueBtn) continueBtn.classList.toggle('hidden', !hasSave);
+  },
+
+  /** 更新设置页面的存档信息 */
+  updateSettingsInfo() {
+    const el = document.getElementById('settings-save-info');
+    if (!el) return;
+    if (GameState.hasSave()) {
+      const data = GameState.data;
+      if (data && data.character) {
+        el.textContent = `有存档 · ${data.character.name} · Day ${data.character.day} · ${data.character.stage}`;
+      } else {
+        el.textContent = '有存档（可读取）';
+      }
+    } else {
+      el.textContent = '当前无存档';
+    }
+  }
+};
+
+// ========== 页面加载后初始化 ==========
+document.addEventListener('DOMContentLoaded', () => {
+  App.init();
+});
+</script>
 </body>
 </html>
