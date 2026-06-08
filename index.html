@@ -312,7 +312,7 @@ body {
           🗑️ 重置游戏
         </button>
       </div>
-      <p class="text-white/20 text-xs mt-12" id="version-text">v2.0.0 · Made with ❤️</p>
+      <p class="text-white/20 text-xs mt-12" id="version-text">v2.1.0 · Made with ❤️</p>
     </div>
   </div>
 </div>
@@ -333,10 +333,11 @@ body {
     <!-- 顶部信息栏 -->
     <div class="glass-card p-4 mb-4" id="header-info"></div>
 
-    <!-- 导航标签：主界面 / 专辑榜单 / 存档设置 -->
+    <!-- 导航标签：主界面 / 专辑榜单 / 粉丝圈 / 存档设置 -->
     <div class="nav-tabs mb-4">
       <span class="nav-tab active" data-tab="main">📋 主界面</span>
       <span class="nav-tab" data-tab="album">💿 专辑榜单</span>
+      <span class="nav-tab" data-tab="fans">💬 粉丝圈</span>
       <span class="nav-tab" data-tab="settings">⚙️ 设置</span>
     </div>
 
@@ -358,6 +359,45 @@ body {
         <p class="text-sm text-white/50 mb-4" id="chart-description">努力写歌、发布单曲，冲击排行榜！</p>
         <div id="album-content">
           <!-- 由 AlbumChartSystem.render() 动态填充 -->
+        </div>
+      </div>
+    </div>
+
+    <!-- 粉丝圈页面 -->
+    <div id="game-tab-fans" class="hidden">
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <!-- 左侧：发布状态 -->
+        <div class="md:col-span-2 space-y-3">
+          <div class="glass-card p-4">
+            <h4 class="text-sm font-medium text-white/60 mb-3">📝 发布动态</h4>
+            <textarea id="fan-post-input" maxlength="200" placeholder="分享你的近况和心情..."
+              class="w-full px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white
+                     placeholder-white/30 outline-none focus:border-purple-500/60 transition-colors resize-none"
+              style="min-height:80px;"></textarea>
+            <button onclick="FanCircle.postStatus()" class="btn-gradient mt-2 py-2 px-6 text-sm">
+              📤 发布
+            </button>
+            <span class="text-xs text-white/30 ml-3" id="post-char-count">0/200</span>
+          </div>
+          <div class="glass-card p-4" id="fan-posts-container">
+            <h4 class="text-sm font-medium text-white/60 mb-3">💬 历史动态</h4>
+            <div id="fan-posts-list">
+              <!-- 由 FanCircle.render() 动态渲染 -->
+            </div>
+          </div>
+        </div>
+        <!-- 右侧：粉丝互动面板 -->
+        <div class="space-y-3">
+          <div class="glass-card p-4">
+            <h4 class="text-sm font-medium text-white/60 mb-3">📬 粉丝来信</h4>
+            <div id="fan-letters" style="max-height:300px; overflow-y:auto;">
+              <!-- 由 FanCircle.render() 动态渲染 -->
+            </div>
+          </div>
+          <div class="glass-card p-4">
+            <h4 class="text-sm font-medium text-white/60 mb-3">📊 互动数据</h4>
+            <div id="fan-stats" class="text-sm"></div>
+          </div>
         </div>
       </div>
     </div>
@@ -437,7 +477,7 @@ body {
 <script>
 /**
  * ============================================================
- * 偶像模拟器 v2.0 — 完整单文件版
+ * 偶像模拟器 v2.1 — 完整单文件版
  * ============================================================
  *
  * 【💡 修改指南】
@@ -451,7 +491,7 @@ body {
 // 1. 游戏配置（所有可调数值集中管理）
 // ============================================================
 const CONFIG = {
-  VERSION: '2.0.0',
+  VERSION: '2.1.0',
   MAX_STAT: 100,
   MIN_STAT: 0,
   MAX_STRESS: 100,
@@ -465,7 +505,7 @@ const CONFIG = {
     stress: 0, health: 100, fans: 0, money: 1000
   },
 
-  // ---- 初始天赋（选一） ----
+  // ---- 初始天赋（可选多项） ----
   TALENTS: [
     { id: 'sing',    name: '🎤 主唱',     desc: '天生好嗓音，声乐天赋异禀',  bonus: { singing: 15 } },
     { id: 'dance',   name: '💃 主舞',     desc: '舞感一流，身体协调性极佳',  bonus: { dancing: 15 } },
@@ -599,7 +639,23 @@ const CONFIG = {
         effects: { singing: [3,5], entertainment: [3,5], fans: [200,500] } },
       { id: 'charity',  title: '❤️ 公益活动',
         text: '你参与的公益活动受到社会好评，正面形象大幅提升！',
-        effects: { fans: [150,400], stress: [-5,-10], health: [3,6] } }
+        effects: { fans: [150,400], stress: [-5,-10], health: [3,6] } },
+      // ↓↓↓ v2.1 新增好事 ↓↓↓
+      { id: 'birthday', title: '🎂 粉丝庆生',
+        text: '粉丝们为你策划了一场盛大的生日应援，温暖又感动！',
+        effects: { fans: [200,500], stress: [-8,-15], health: [3,6] } },
+      { id: 'tiktok', title: '📱 短视频爆火',
+        text: '你随手拍的短视频突然爆火，播放量破百万！',
+        effects: { fans: [400,800], entertainment: [2,4] } },
+      { id: 'magazine', title: '📰 杂志封面',
+        text: '你登上了知名时尚杂志封面，咖位大提升！',
+        effects: { appearance: [3,6], fans: [200,500], money: [1000,3000] } },
+      { id: 'skill_up', title: '⚡ 技能突破',
+        text: '长时间的积累终于迎来突破！单项能力大幅提升！',
+        effects: { singing: [5,10], dancing: [5,10], entertainment: [3,6] } },
+      { id: 'global', title: '🌏 海外人气',
+        text: '你的舞台视频被海外网友转载，开始收获国际粉丝！',
+        effects: { fans: [300,700], money: [500,2000] } }
     ],
     bad: [
       { id: 'blackfan', title: '💢 黑粉攻击',
@@ -632,7 +688,23 @@ const CONFIG = {
         effects: { money: [-2000,-5000], stress: [10,15] } },
       { id: 'accident', title: '🚗 突发意外',
         text: '赶行程途中遇到小车祸，虽然没有大碍但受到了惊吓！',
-        effects: { health: [-10,-20], stress: [10,15] } }
+        effects: { health: [-10,-20], stress: [10,15] } },
+      // ↓↓↓ v2.1 新增坏事 ↓↓↓
+      { id: 'cyberbully', title: '💻 网络暴力',
+        text: '因一句话被断章取义，遭遇大规模网络暴力！',
+        effects: { fans: [-200,-400], stress: [15,25], health: [-5,-10] } },
+      { id: 'miss_show', title: '🚫 演出取消',
+        text: '因主办方原因演出临时取消，白白浪费了准备的心血！',
+        effects: { money: [-500,-1000], stress: [10,15], entertainment: [-1,-2] } },
+      { id: 'bad_review', title: '📝 恶评如潮',
+        text: '新作品被专业乐评人差评，受到很大打击！',
+        effects: { fans: [-150,-300], stress: [12,18], singing: [-1,-3] } },
+      { id: 'equipment', title: '🔧 设备损坏',
+        text: '重要演出设备突然损坏，不得不花一大笔钱维修！',
+        effects: { money: [-2000,-4000], stress: [8,12] } },
+      { id: 'jealous', title: '👀 同行嫉妒',
+        text: '遭到同行的嫉妒和排挤，资源被暗中打压！',
+        effects: { stress: [10,15], fans: [-50,-150], entertainment: [-1,-2] } }
     ],
     neutral: [
       { id: 'fanletter', title: '💌 粉丝来信',
@@ -653,7 +725,20 @@ const CONFIG = {
         effects: { stress: [5,10], money: [-100,-200] } },
       { id: 'dream',    title: '💭 奇妙梦境',
         text: '做了一个成为巨星的梦，醒来后充满干劲！',
-        effects: { stress: [-5,-10], health: [2,5] } }
+        effects: { stress: [-5,-10], health: [2,5] } },
+      // ↓↓↓ v2.1 新增中性事件 ↓↓↓
+      { id: 'relax',    title: '🎮 休闲时光',
+        text: '难得的休息日，打游戏看剧放松了一整天',
+        effects: { stress: [-8,-15], money: [-100,-200] } },
+      { id: 'spill',    title: '☕ 咖啡洒了',
+        text: '不小心把咖啡洒在衣服上，重要约会迟到了',
+        effects: { stress: [8,12] } },
+      { id: 'old_friend', title: '📞 老友来电',
+        text: '收到了很久没联系的老朋友的电话，聊得很开心',
+        effects: { stress: [-8,-15], entertainment: [1,2] } },
+      { id: 'rain',     title: '🌂 雨中漫步',
+        text: '结束工作后遇到细雨，意外感觉很惬意',
+        effects: { stress: [-5,-10], health: [1,3] } }
     ]
   },
 
@@ -727,6 +812,37 @@ const CONFIG = {
           effects: { fans: [50,100], stress: [-5,-8], money: [-500,-1000] },
           result: '通过私下沟通平息了战火，粉丝更加团结' }
       ]
+    },
+    // ↓↓↓ v2.1 新增分支事件 ↓↓↓
+    {
+      id: 'branch_training',
+      title: '🏋️ 训练方法选择',
+      text: '公司为你安排了新的训练计划，你有两种方向可以选择：',
+      choices: [
+        { label: '💪 高强度魔鬼训练',
+          detail: '效果极佳但身体负荷很大',
+          effects: { singing: [4,8], dancing: [4,8], health: [-8,-15], stress: [12,18] },
+          result: '魔鬼训练让你的实力突飞猛进，但身体有些吃不消' },
+        { label: '🧘 科学均衡训练',
+          detail: '稳步提升，兼顾身心健康',
+          effects: { singing: [2,5], dancing: [2,5], health: [2,5], stress: [-3,-6] },
+          result: '科学的训练方法让你持续稳定进步，基础更加扎实' }
+      ]
+    },
+    {
+      id: 'branch_endorse',
+      title: '💄 代言选择',
+      text: '两个代言找上门来，但风格截然不同，你选择哪个？',
+      choices: [
+        { label: '👗 高奢时装品牌',
+          detail: '提升形象格调，但受众面较窄',
+          effects: { appearance: [3,6], fans: [100,300], money: [5000,10000], stress: [5,10] },
+          result: '高奢代言提升了你的时尚地位，高端资源接踵而来！' },
+        { label: '🥤 国民快消品牌',
+          detail: '受众广泛，提升大众知名度',
+          effects: { fans: [300,600], money: [2000,5000], entertainment: [2,4], stress: [3,6] },
+          result: '国民品牌让你的人气暴涨，大街小巷都是你的广告！' }
+      ]
     }
   ],
 
@@ -758,15 +874,18 @@ const CONFIG = {
 const GameState = {
   data: null,
 
-  /** 创建新角色 */
+  /** 创建新角色（天赋已改为多选） */
   createCharacter(info) {
     const stats = { ...CONFIG.INITIAL_STATS };
-    const talent = CONFIG.TALENTS.find(t => t.id === info.talent);
-    if (talent) {
-      Object.entries(talent.bonus).forEach(([key, val]) => {
-        stats[key] = Math.min(CONFIG.MAX_STAT, stats[key] + val);
-      });
-    }
+    // 应用所有选中的天赋加成
+    (info.talents || []).forEach(tId => {
+      const talent = CONFIG.TALENTS.find(t => t.id === tId);
+      if (talent) {
+        Object.entries(talent.bonus).forEach(([key, val]) => {
+          stats[key] = Math.min(CONFIG.MAX_STAT, stats[key] + val);
+        });
+      }
+    });
     const selectedTags = CONFIG.TAGS.filter(t => info.tags.includes(t.id));
     selectedTags.forEach(tag => {
       if (tag.effectType === 'stat_boost') {
@@ -780,7 +899,7 @@ const GameState = {
       character: {
         name: info.name,
         gender: info.gender,
-        talent: info.talent,
+        talent: info.talents,  // 天赋数组（多选）
         tags: info.tags,
         stats,
         stress: 0,
@@ -794,7 +913,10 @@ const GameState = {
         songs: [],           // 创作的歌曲列表
         albums: [],          // 已发布的专辑/单曲
         chartRank: null,     // 当前榜单排名
-        chartWeek: 0         // 当前榜单周数
+        chartWeek: 0,        // 当前榜单周数
+        // 粉丝圈数据
+        posts: [],           // 发布的动态
+        fanLetters: [],      // 粉丝来信
       }
     };
     this.save();
@@ -833,6 +955,8 @@ const GameState = {
         if (!this.data.character.albums) this.data.character.albums = [];
         if (this.data.character.chartRank === undefined) this.data.character.chartRank = null;
         if (this.data.character.chartWeek === undefined) this.data.character.chartWeek = 0;
+        if (!this.data.character.posts) this.data.character.posts = [];
+        if (!this.data.character.fanLetters) this.data.character.fanLetters = [];
         return true;
       }
     } catch (e) { console.warn('读档失败:', e); }
@@ -1116,7 +1240,7 @@ const CharacterCreator = {
           </div>
 
           <div class="mb-5">
-            <label class="block text-sm font-medium text-white/70 mb-3">🎯 初始天赋（选一项）</label>
+            <label class="block text-sm font-medium text-white/70 mb-3">🎯 初始天赋（可选多项）</label>
             <div class="grid grid-cols-2 gap-3" id="talent-grid">
               ${CONFIG.TALENTS.map(t => `
                 <div class="talent-card" data-talent="${t.id}">
@@ -1145,15 +1269,24 @@ const CharacterCreator = {
     this.bindEvents();
   },
 
+  /** 当前选中的天赋（多选） */
+  selectedTalents: [],
+
   bindEvents() {
+    // ★ 天赋改为多选：点击切换选中状态（类似标签）
     const talentCards = document.querySelectorAll('.talent-card');
     talentCards.forEach(card => {
       card.addEventListener('click', () => {
-        talentCards.forEach(c => c.classList.remove('selected'));
-        card.classList.add('selected');
+        const talentId = card.dataset.talent;
+        if (card.classList.contains('selected')) {
+          card.classList.remove('selected');
+          this.selectedTalents = this.selectedTalents.filter(t => t !== talentId);
+        } else {
+          card.classList.add('selected');
+          this.selectedTalents.push(talentId);
+        }
       });
     });
-    if (talentCards.length > 0) talentCards[0].classList.add('selected');
 
     document.querySelectorAll('.gender-option').forEach(el => {
       el.addEventListener('click', () => {
@@ -1193,12 +1326,12 @@ const CharacterCreator = {
     const name = document.getElementById('input-name').value.trim();
     if (!name) { UI.showToast('请输入你的艺名 ✨', 'warning'); return; }
     const gender = document.querySelector('input[name="gender"]:checked')?.value || '男';
-    const selectedTalent = document.querySelector('.talent-card.selected');
-    if (!selectedTalent) { UI.showToast('请选择一项初始天赋 🎯', 'warning'); return; }
-    const talent = selectedTalent.dataset.talent;
+    const selectedTalentEls = document.querySelectorAll('.talent-card.selected');
+    if (selectedTalentEls.length === 0) { UI.showToast('请至少选择一项初始天赋 🎯', 'warning'); return; }
+    const talents = Array.from(selectedTalentEls).map(el => el.dataset.talent);
     if (this.selectedTags.length < 2) { UI.showToast('请选择 2 个人设标签 🏷️', 'warning'); return; }
 
-    GameState.createCharacter({ name, gender, talent, tags: this.selectedTags });
+    GameState.createCharacter({ name, gender, talents, tags: this.selectedTags });
     UI.showToast(`欢迎来到偶像世界，${name}！🌟`, 'success');
     App.switchScreen('game');
   }
@@ -1623,6 +1756,9 @@ const Schedule = {
     // 自动存档
     GameState.autoSave();
 
+    // 生成粉丝来信
+    FanCircle.generateFanLetter();
+
     // 清空选择
     this.selections = [null, null, null, null];
 
@@ -1801,7 +1937,215 @@ const AlbumChartSystem = {
 };
 
 // ============================================================
-// 9. 主控制器
+// 9. 粉丝圈系统（发布状态 + 粉丝留言 + 互动）
+// ============================================================
+const FanCircle = {
+  /** 粉丝留言模板（根据粉丝量级变化） */
+  getFanComments(post) {
+    const chara = GameState.data.character;
+    const fanCount = chara.fans;
+    // 粉丝越多，每条动态的评论数越多
+    const commentCount = Math.min(8, Math.max(1, Math.floor(fanCount / 200) + 1));
+
+    const namePool = ['追星小蝶', '星光守护者', '萌萌哒粉丝', '偶像后援会', '彩虹糖',
+                      '梦想家', '星星眼', '爱豆的小棉袄', '热血应援', '月亮代表我的心',
+                      '甜蜜炸弹', '橘子汽水', '夏日限定', '银河护卫队', '奶茶续命中'];
+    const congratsComments = [
+      '啊啊啊！老公/老婆发动态了！😍', '前排！今日份的快乐源泉！', '宝贝好棒！！永远支持你💜',
+      '太可爱了吧这也！', '每天都要开开心心的哦～', '今天也是为优秀偶像打call的一天！',
+      '期待新作品！！🔥', '加油加油！你是最闪亮的星✨', '呜呜呜终于等到你更新了',
+      '看到你努力的样子，我也被激励了！', '永远做你的粉丝！', '这张照片我可以看一天！',
+      '冲冲冲！向顶流进发！🚀', '你的努力我们都看到了！', '好想去看你的演唱会！',
+      '今天也是美颜暴击的一天！', '新歌什么时候出呀？', '照顾好自己，别太累了💕',
+      '你是我的全部！！', '此生无悔入坑！', '从练习生时期就关注你了！',
+      '太优秀了吧这也太优秀了', '每天都给我新的惊喜！'
+    ];
+
+    const comments = [];
+    for (let i = 0; i < commentCount; i++) {
+      const name = namePool[Math.floor(Math.random() * namePool.length)];
+      const text = congratsComments[Math.floor(Math.random() * congratsComments.length)];
+      const hoursAgo = Math.floor(Math.random() * 48) + 1;
+      comments.push({
+        name: name + (Math.random() > 0.5 ? Math.floor(Math.random() * 999) + 1 : ''),
+        text,
+        time: hoursAgo + '小时前',
+        likes: Math.floor(Math.random() * 100)
+      });
+    }
+    return comments;
+  },
+
+  /** 发布新状态 */
+  postStatus() {
+    const input = document.getElementById('fan-post-input');
+    const text = input.value.trim();
+    if (!text) { UI.showToast('写点什么再发布吧 📝', 'warning'); return; }
+
+    const chara = GameState.data.character;
+    const post = {
+      id: Date.now(),
+      text,
+      time: '刚刚',
+      day: chara.day,
+      likes: Math.floor(Math.random() * 50) + 10,
+      comments: this.getFanComments()
+    };
+    chara.posts.unshift(post);
+
+    // 发动态增加少量粉丝和压力
+    const fanBoost = Math.floor(Math.random() * 20) + 5;
+    chara.fans += fanBoost;
+    const stressUp = Math.floor(Math.random() * 3) + 1;
+    chara.stress = Math.min(CONFIG.MAX_STRESS, chara.stress + stressUp);
+
+    input.value = '';
+    UI.showToast(`动态已发布！获得 ${fanBoost} 个新粉丝 💬`, 'success');
+    GameState.autoSave();
+    this.render();
+    UI.renderStats();
+    chara.log.push({ day: chara.day, event: '📝 发布动态', summary: text.substring(0, 20) + '...' });
+    UI.renderLog();
+  },
+
+  /** 生成粉丝来信 */
+  generateFanLetter() {
+    const chara = GameState.data.character;
+    if (chara.fans < 50) return; // 粉丝太少没有来信
+
+    // 随机生成，不是每天都有
+    if (Math.random() > 0.3) return;
+
+    const senders = ['小玲', '阿花', '追梦人', '星空下', '小确幸', '温暖的手', '远方的你',
+                     '晴天娃娃', '彩虹使者', '萤火虫', '北极星', '微风', '晨曦', '星雨'];
+    const subjects = [
+      '❤️ 一封真挚的告白', '📩 来自粉丝的信', '💌 读过之后请加油',
+      '🌟 因为你，我变得更好', '🎀 想对你说的话', '✨ 你是我的光'
+    ];
+    const bodies = [
+      '喜欢你已经很长时间了，每次看到你在舞台上发光发热，我都特别感动。请继续加油！',
+      '你的音乐陪伴我度过了最艰难的时光，谢谢你。希望你能一直唱下去！',
+      '今天是我喜欢你的第365天，这一年因为你，我的生活多了很多色彩！',
+      '看到你那么努力，我也在努力成为更好的人。我们一起加油吧！',
+      '你最近的演出超级棒！我已经安利给所有好朋友了，他们也都入坑了！',
+      '不要太累了，要注意身体哦。我们会一直支持你的！',
+      '你的存在本身就是一种力量。谢谢你来到这个世界上。',
+      '我把我存的零花钱都用来买你的专辑了，值得！期待下一张！',
+      '每次看到你的笑容，所有的烦恼都烟消云散了。要一直开心呀！'
+    ];
+
+    const letter = {
+      id: Date.now() + Math.random(),
+      sender: senders[Math.floor(Math.random() * senders.length)],
+      subject: subjects[Math.floor(Math.random() * subjects.length)],
+      body: bodies[Math.floor(Math.random() * bodies.length)],
+      day: chara.day,
+      read: false
+    };
+    chara.fanLetters.unshift(letter);
+  },
+
+  /** 标记来信为已读 */
+  readLetter(id) {
+    const chara = GameState.data.character;
+    const letter = chara.fanLetters.find(l => l.id === id);
+    if (letter) {
+      letter.read = true;
+      // 读信回一点压力和健康
+      chara.stress = Math.max(0, chara.stress - 2);
+      chara.health = Math.min(CONFIG.MAX_HEALTH, chara.health + 1);
+      GameState.autoSave();
+      this.render();
+    }
+  },
+
+  /** 渲染粉丝圈 */
+  render() {
+    const chara = GameState.data.character;
+
+    // ---- 渲染动态列表 ----
+    const postsContainer = document.getElementById('fan-posts-list');
+    if (postsContainer) {
+      if (chara.posts.length === 0) {
+        postsContainer.innerHTML = '<p class="text-xs text-white/30 text-center py-6">还没有发布过动态，写点什么吧！</p>';
+      } else {
+        postsContainer.innerHTML = chara.posts.slice(0, 20).map(post => {
+          const comments = this.getFanComments(post);
+          return `
+            <div class="bg-white/5 rounded-xl p-3 mb-3" style="animation:fadeIn .3s ease-out;">
+              <div class="flex items-start gap-2">
+                <span class="text-lg">${chara.gender === '男' ? '👤' : '👩'}</span>
+                <div class="flex-1 min-w-0">
+                  <div class="text-sm font-medium">${chara.name}</div>
+                  <div class="text-xs text-white/30">Day ${post.day} · ${post.time}</div>
+                </div>
+              </div>
+              <p class="text-sm text-white/80 my-2">${this.escapeHtml(post.text)}</p>
+              <div class="flex items-center gap-4 text-xs text-white/40 mb-2">
+                <span>❤️ ${post.likes}</span>
+                <span>💬 ${comments.length} 条回复</span>
+              </div>
+              ${comments.slice(0, 4).map(c => `
+                <div class="bg-white/5 rounded-lg p-2 mt-1 text-xs">
+                  <span class="text-purple-400 font-medium">${this.escapeHtml(c.name)}</span>
+                  <span class="text-white/60">：${this.escapeHtml(c.text)}</span>
+                  <span class="text-white/20 ml-1">${c.time}</span>
+                </div>
+              `).join('')}
+              ${comments.length > 4 ? `<div class="text-xs text-white/20 mt-1">还有 ${comments.length - 4} 条回复...</div>` : ''}
+            </div>`;
+        }).join('');
+      }
+    }
+
+    // ---- 渲染粉丝来信 ----
+    const lettersContainer = document.getElementById('fan-letters');
+    if (lettersContainer) {
+      const letters = chara.fanLetters || [];
+      if (letters.length === 0) {
+        lettersContainer.innerHTML = '<p class="text-xs text-white/30 text-center py-4">还没有粉丝来信～多互动就会收到哦</p>';
+      } else {
+        lettersContainer.innerHTML = letters.slice(0, 15).map(l => `
+          <div class="bg-white/5 rounded-lg p-3 mb-2 ${l.read ? 'opacity-60' : 'border-l-2 border-purple-400'}" style="cursor:pointer;"
+               onclick="FanCircle.readLetter(${l.id})">
+            <div class="flex items-center justify-between mb-1">
+              <span class="text-xs font-medium ${l.read ? 'text-white/50' : 'text-purple-400'}">✉️ ${this.escapeHtml(l.subject)}</span>
+              ${!l.read ? '<span class="text-xs text-purple-400 font-bold">NEW</span>' : ''}
+            </div>
+            <div class="text-xs text-white/40">${this.escapeHtml(l.sender)} · Day ${l.day}</div>
+            <div class="text-xs text-white/60 mt-1 ${l.read ? '' : 'line-clamp-2'}">${this.escapeHtml(l.body)}</div>
+          </div>
+        `).join('');
+      }
+    }
+
+    // ---- 渲染互动数据 ----
+    const statsContainer = document.getElementById('fan-stats');
+    if (statsContainer) {
+      const totalPosts = chara.posts.length;
+      const totalLetters = (chara.fanLetters || []).length;
+      const unreadLetters = (chara.fanLetters || []).filter(l => !l.read).length;
+      statsContainer.innerHTML = `
+        <div class="space-y-2">
+          <div class="flex justify-between"><span class="text-white/40">📝 发布动态</span><span>${totalPosts}</span></div>
+          <div class="flex justify-between"><span class="text-white/40">📬 粉丝来信</span><span>${totalLetters}</span></div>
+          <div class="flex justify-between"><span class="text-white/40">💌 未读信件</span><span class="${unreadLetters > 0 ? 'text-purple-400 font-bold' : ''}">${unreadLetters}</span></div>
+          <div class="flex justify-between"><span class="text-white/40">👥 粉丝总数</span><span class="text-purple-400">${UI.formatNum(chara.fans)}</span></div>
+        </div>
+      `;
+    }
+  },
+
+  /** HTML 转义 */
+  escapeHtml(text) {
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+  }
+};
+
+// ============================================================
+// 10. 主控制器
 // ============================================================
 const App = {
   currentScreen: null,
@@ -1817,11 +2161,22 @@ const App = {
         // 显示对应的内容区域
         document.getElementById('game-tab-main').classList.toggle('hidden', target !== 'main');
         document.getElementById('game-tab-album').classList.toggle('hidden', target !== 'album');
+        document.getElementById('game-tab-fans').classList.toggle('hidden', target !== 'fans');
         document.getElementById('game-tab-settings').classList.toggle('hidden', target !== 'settings');
-        // 切换到专辑榜单时刷新数据
+        // 切换到对应标签时刷新数据
         if (target === 'album') AlbumChartSystem.render();
+        if (target === 'fans') FanCircle.render();
         if (target === 'settings') this.updateSettingsInfo();
       });
+    });
+
+    // 发布动态字数统计
+    document.addEventListener('input', (e) => {
+      if (e.target && e.target.id === 'fan-post-input') {
+        const count = e.target.value.length;
+        const el = document.getElementById('post-char-count');
+        if (el) el.textContent = count + '/200';
+      }
     });
   },
 
@@ -1843,6 +2198,7 @@ const App = {
     Schedule.render();
     UI.renderLog();
     AlbumChartSystem.render();
+    FanCircle.render();
 
     const chara = GameState.data.character;
     if (chara.health <= 0) this.showGameOver('因健康问题退出演艺圈');
