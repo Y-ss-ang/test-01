@@ -54,7 +54,7 @@ body {
   100% { background-position: 200% center; }
 }
 
-/* 浮动数字动画（属性变化时） */
+/* ---------- 浮动数字动画（属性变化时） ---------- */
 @keyframes floatUp {
   0% { opacity: 1; transform: translateY(0) scale(1); }
   100% { opacity: 0; transform: translateY(-40px) scale(1.3); }
@@ -180,10 +180,12 @@ body {
 /* ---------- 日程选择器 ---------- */
 .schedule-select {
   width: 100%;
-  padding: 10px 14px;
+  padding: 12px 36px 12px 14px;  /* 右内边距留给箭头 */
   border-radius: 10px;
   border: 1px solid rgba(255,255,255,0.15);
-  background: rgba(255,255,255,0.08);
+  background: rgba(255,255,255,0.08)
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath fill='white' opacity='0.5' d='M1.41 0L6 4.58 10.59 0 12 1.41l-6 6-6-6z'/%3E%3C/svg%3E")
+    no-repeat right 12px center;
   color: #fff;
   font-size: 0.9rem;
   outline: none;
@@ -191,6 +193,10 @@ body {
   appearance: none;
   -webkit-appearance: none;
   transition: border-color .2s;
+  /* 选中文本截断，避免撑破布局 */
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 .schedule-select:hover,
 .schedule-select:focus { border-color: rgba(168, 85, 247, 0.6); }
@@ -198,6 +204,8 @@ body {
   background: #1e1b4b;
   color: #fff;
   padding: 8px;
+  white-space: normal;      /* 选项内可换行 */
+  font-size: 0.85rem;
 }
 
 /* ---------- 性别选项 ---------- */
@@ -273,10 +281,132 @@ body {
   box-shadow: none;
 }
 
-/* ---------- 响应式 ---------- */
+/* ===================================================
+   响应式设计 — 全面手机适配
+   =================================================== */
+
+/* 平板及以下 */
 @media (max-width: 768px) {
   .game-grid {
     grid-template-columns: 1fr !important;
   }
-  .event-modal { margin: 16px; }
+  .event-modal {
+    margin: 16px;
+    padding: 28px 20px;
+  }
+  .event-modal .icon { font-size: 2.5rem; }
+  .event-modal h3 { font-size: 1.15rem; }
+
+  /* 底部按钮一行两个 */
+  .bottom-toolbar {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+  }
+  .bottom-toolbar button {
+    width: 100%;
+    text-align: center;
+    justify-content: center;
+  }
+}
+
+/* 手机 (<480px) */
+@media (max-width: 480px) {
+  /* 全局 padding 收紧 */
+  #screen-game > div { padding: 10px !important; }
+
+  .glass-card { border-radius: 12px; }
+
+  /* ===== 标题页 ===== */
+  #screen-title h1 { font-size: 2.2rem !important; }
+  #screen-title .text-6xl { font-size: 3rem !important; }
+
+  /* ===== 角色创建 ===== */
+  #screen-create .talent-card {
+    padding: 10px 8px;
+  }
+  #screen-create .talent-card .text-2xl { font-size: 1.3rem; }
+  #screen-create .talent-card .text-xs { display: none; }  /* 手机上隐藏天赋小字描述 */
+  #screen-create .glass-card { padding: 20px 16px !important; }
+
+  /* ===== 顶部信息栏 ===== */
+  #header-info .text-lg { font-size: 0.95rem; }
+  #header-info .text-sm { font-size: 0.75rem; }
+  #header-info .gap-x-5 { gap: 0.4rem 0.6rem; }
+
+  /* ===== 属性面板 ===== */
+  #stats-panel .text-xl { font-size: 1.1rem; }
+  #stats-panel .p-4 { padding: 12px !important; }
+
+  /* ===== 数值卡片 (粉丝/金钱/压力/健康) ===== */
+  #stats-panel .grid-cols-2 { gap: 8px; }
+  #stats-panel .rounded-xl { padding: 10px 6px !important; }
+  #stats-panel .rounded-xl .text-xl { font-size: 1rem; }
+
+  /* ===== 日程面板 ===== */
+  #schedule-panel .p-5 { padding: 14px !important; }
+  .schedule-select {
+    font-size: 0.8rem;
+    padding: 10px 32px 10px 10px;
+    min-height: 42px;  /* 触控友好 */
+  }
+  #schedule-panel h3 { font-size: 0.95rem; }
+
+  /* ===== 执行记录 ===== */
+  #execution-log .p-3 { padding: 10px !important; }
+  #execution-log .flex { gap: 8px; }
+  #execution-log .text-lg { font-size: 1rem; }
+  #execution-log .text-sm { font-size: 0.75rem; }
+
+  /* ===== 日志面板 ===== */
+  #log-panel .p-4 { padding: 12px !important; }
+  #log-panel .text-xs { font-size: 0.7rem; }
+
+  /* ===== 事件弹窗 ===== */
+  .event-modal {
+    margin: 12px;
+    padding: 24px 16px;
+    border-radius: 16px;
+  }
+  .event-modal .icon { font-size: 2rem; }
+  .event-modal h3 { font-size: 1rem; }
+  .event-modal p { font-size: 0.85rem; margin-bottom: 16px; }
+  .event-modal button {
+    padding: 12px 28px;
+    width: 100%;
+  }
+
+  /* ===== toast 通知 ===== */
+  .toast {
+    font-size: 0.8rem;
+    padding: 10px 18px;
+    max-width: 92vw;
+  }
+
+  /* ===== 浮动数字 ===== */
+  .float-number { font-size: 1rem; }
+
+  /* ===== 底部按钮 ===== */
+  .bottom-toolbar button {
+    font-size: 0.8rem !important;
+    padding: 10px 12px !important;
+    min-height: 44px;  /* Apple HIG 最小触控目标 */
+  }
+
+  /* ===== 成长阶段文字 ===== */
+  #stats-panel .text-xs.mt-2 { font-size: 0.65rem; line-height: 1.4; }
+}
+
+/* 小屏手机 (<360px) */
+@media (max-width: 360px) {
+  #screen-game > div { padding: 6px !important; }
+  .glass-card { border-radius: 10px; }
+
+  #stats-panel .grid-cols-2 { grid-template-columns: 1fr 1fr; }
+  #stats-panel .rounded-xl .text-xl { font-size: 0.9rem; }
+
+  .bottom-toolbar {
+    grid-template-columns: 1fr 1fr;
+    gap: 6px;
+  }
 }

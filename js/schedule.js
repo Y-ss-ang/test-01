@@ -25,9 +25,9 @@ const Schedule = {
     const chara = GameState.data.character;
     const container = document.getElementById('schedule-panel');
 
-    // 生成下拉选项
+    // 生成下拉选项（手机端只显示活动名，避免撑破布局）
     const optionsHtml = activities.map(a =>
-      `<option value="${a.id}">${a.name} — ${a.desc}</option>`
+      `<option value="${a.id}">${a.name}</option>`
     ).join('');
 
     container.innerHTML = `

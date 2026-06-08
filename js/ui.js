@@ -40,9 +40,10 @@ const UI = {
     el.className = `float-number ${value > 0 ? 'positive' : 'negative'}`;
     el.textContent = `${label} ${sign}${value}`;
 
-    // 随机位置
-    el.style.left = (20 + Math.random() * 60) + '%';
-    el.style.top = (30 + Math.random() * 40) + '%';
+    // 随机位置（居中偏上，确保手机端也在可视区内）
+    const isMobile = window.innerWidth < 480;
+    el.style.left = isMobile ? (20 + Math.random() * 50) + '%' : (20 + Math.random() * 60) + '%';
+    el.style.top = isMobile ? (25 + Math.random() * 30) + '%' : (30 + Math.random() * 40) + '%';
     document.body.appendChild(el);
 
     setTimeout(() => el.remove(), 1000);
